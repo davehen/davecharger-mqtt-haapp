@@ -334,6 +334,7 @@ if (limitKw != null && limitKw > 0) {
       const txt = await r.text();
 
       const all = txt.split("\n").filter(x => x.length);
+      const nowLog = parseLogTsMs(all[all.length - 1]) ?? Date.now();
 
       // Estrae ultimo GRID_LIMIT numerico per il grafico
       for (let i = all.length - 1; i >= 0; i--) {
@@ -368,8 +369,8 @@ if (limitKw != null && limitKw > 0) {
         break;
       }
 
-      const now = Date.now();
-      const chgFresh = (lastChgTs != null) && ((now - lastChgTs) <= CHG_TTL_MS);
+      const chgFresh = (lastChgTs != null) && ((nowLog - lastChgTs) <= CHG_TTL_MS);
+
 
       // Se L dice STOP/SUSPEND ma CHG* è fresco => CHARGE vince
       if (!isCharging && chgFresh) {
@@ -453,7 +454,8 @@ if (limitKw != null && limitKw > 0) {
       // Sparkline: se non CHARGE , spingi 0
       sparkData.push(isCharging && chgFresh && typeof kw === "number" && isFinite(kw) ? kw : 0);
 
-      sparkTime.push(Date.now());
+      sparkTime.push(nowLog);
+
       while (sparkData.length > SPARK_MAX) { sparkData.shift(); sparkTime.shift(); }
       drawBigChart();
 
