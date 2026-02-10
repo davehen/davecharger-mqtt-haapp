@@ -73,6 +73,16 @@
       window.scrollTo(0, document.body.scrollHeight);
     });
 	
+function parseLogTsMs(line) {
+  // "2026-02-10 11:15:20.507185 - ..."
+  const m = line.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [_, Y, Mo, D, h, mi, s] = m;
+  // locale time (va bene, ci serve solo differenza di secondi)
+  return new Date(+Y, +Mo - 1, +D, +h, +mi, +s).getTime();
+}
+
+
 	function chgHasPower(line) {
 	  if (!/\bCHG\*/.test(line)) return false;
 	
@@ -343,63 +353,71 @@ if (limitKw != null && limitKw > 0) {
 		}
 
 
-		let isCharging = (liveState === "CHARGE");
-    // ✅ OVERRIDE: se vedo potenza reale CHG* negli ultimi N record, considero CHARGE
-    const tail = all.slice(-200);
 
-    const hasChgPower = tail.some(chgHasPower);
-    const hasPublishCharging = tail.some(l => /Publish charging =>\s*\(actual=1\)/.test(l));
-    const hasStatusCharging  = tail.some(l => /"status"\s*:\s*"Charging"/.test(l));
 
-    if (!isCharging && (hasChgPower || hasPublishCharging || hasStatusCharging)) {
-      isCharging = true;
-      liveState = "CHARGE";   // così l’header non resta STOP
-    }
-		if (!liveState) {
-		  const tail = all.slice(-120);
-		
-		  const hasChgPower = tail.some(chgHasPower);
-		  const hasPublishCharging = tail.some(l => /Publish charging =>\s*\(actual=1\)/.test(l));
-		  const hasStatusCharging  = tail.some(l => /"status"\s*:\s*"Charging"/.test(l));
-		
-		  if (hasChgPower || hasPublishCharging || hasStatusCharging) {
-		    liveState = "CHARGE";
-		    isCharging = true;
-		  }
-		}
+      let isCharging = (liveState === "CHARGE");
 
+      // ===== CHG* TTL: carica “vera” solo se CHG* con P>50 è recente =====
+      const CHG_TTL_MS = 8000; // 8s (con refresh 2s è perfetto)
+      let lastChgTs = null;
+
+      // cerco l'ultima CHG* con potenza e prendo il suo timestamp
+      for (let i = all.length - 1; i >= 0; i--) {
+        const l = all[i];
+        if (!chgHasPower(l)) continue;
+        lastChgTs = parseLogTsMs(l);
+        break;
+      }
+
+      const now = Date.now();
+      const chgFresh = (lastChgTs != null) && ((now - lastChgTs) <= CHG_TTL_MS);
+
+      // Se L dice STOP/SUSPEND ma CHG* è fresco => CHARGE vince
+      if (!isCharging && chgFresh) {
+        isCharging = true;
+        liveState = "CHARGE";
+      }
+
+      // Se L dice CHARGE ma CHG* non è fresco => NON è carica (evita “appeso”)
+      if (isCharging && !chgFresh) {
+        isCharging = false;
+        // liveState resta quello trovato dal loop L1* (o null)
+      }
 
       let kw = null;
       let pv = null;
       let kwh = null;
 
-      if (isCharging) {
+  
+
+      if (isCharging && chgFresh) {
         for (let i = all.length - 1; i >= 0; i--) {
           const l = all[i];
           if (!chgHasPower(l)) continue;
 
-          // Potenza
           const mP = l.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
           const p = mP ? parseFloat(mP[1]) : NaN;
           if (!Number.isFinite(p)) continue;
           kw = p / 1000.0;
 
-          // Energia
           const mKwh = l.match(/\bkwh\s*=\s*([0-9.]+)/i);
           if (mKwh) kwh = parseFloat(mKwh[1]);
 
-          // Import / export
           const mW = l.match(/\bW\s*=\s*(-?\d+)/i);
           if (mW) isExporting = parseInt(mW[1], 10) < 0;
 
-          // PV%
-          const mPv = l.match(/\bpv=([0-9.]+)%/i);
-          if (mPv) pv = parseFloat(mPv[1]);
-          else if (isExporting) pv = 100; // fallback
+          const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
+          if (mPv) pv = parseFloat(mPv[1].replace(",", "."));
+          else if (isExporting) pv = 100;
 
           break;
         }
+      } else {
+        // se non è “carica fresca”, non tenere valori vecchi
+        isExporting = false;
       }
+
+
 
       // Header coerente (mostra anche AVAIL/STOP)
       if (!isCharging) {
@@ -434,7 +452,8 @@ if (limitKw != null && limitKw > 0) {
       }
 
       // Sparkline: se non CHARGE , spingi 0
-      sparkData.push(isCharging && typeof kw === "number" && isFinite(kw) ? kw : 0);
+      sparkData.push(isCharging && chgFresh && typeof kw === "number" && isFinite(kw) ? kw : 0);
+
       sparkTime.push(Date.now());
       while (sparkData.length > SPARK_MAX) { sparkData.shift(); sparkTime.shift(); }
       drawBigChart();
