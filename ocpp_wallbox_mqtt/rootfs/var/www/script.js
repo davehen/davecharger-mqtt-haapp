@@ -363,41 +363,31 @@ if (limitKw != null && limitKw > 0) {
       let pv = null;
       let kwh = null;
 
-      // kw/kwh SOLO se CHARGE (così non resta "appeso" quando diventa AVAIL)
       if (isCharging) {
         for (let i = all.length - 1; i >= 0; i--) {
           const l = all[i];
-			if (!chgHasPower(l)) continue;
-			
-			const mP = l.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
-			const p = parseFloat(mP[1]);
-			kw = p / 1000.0;
-			
-			const mKwh = l.match(/\bkwh\s*=\s*([0-9.]+)/i);
-			if (mKwh) kwh = parseFloat(mKwh[1]);
-			break;
-        }
-      }
+          if (!chgHasPower(l)) continue;
 
-      // export FV: SOLO se CHARGE (se AVAIL non ha senso)
-      isExporting = false;
-      if (isCharging) {
-        for (let i = all.length - 1; i >= 0; i--) {
-          const l = all[i];
-          const mW = l.match(/\bW=(-?\d+)/i);
-          if (mW && parseInt(mW[1], 10) < 0) { isExporting = true; break; }
-        }
-      }
+          // Potenza
+          const mP = l.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
+          const p = mP ? parseFloat(mP[1]) : NaN;
+          if (!Number.isFinite(p)) continue;
+          kw = p / 1000.0;
 
-      // PV%: se export -> 100%, altrimenti pv=xx%
-      if (isCharging) {
-        if (isExporting) {
-          pv = 100;
-        } else {
-          for (let i = all.length - 1; i >= 0; i--) {
-            const mPv = all[i].match(/\bpv=([0-9.]+)%/i);
-            if (mPv) { pv = parseFloat(mPv[1]); break; }
-          }
+          // Energia
+          const mKwh = l.match(/\bkwh\s*=\s*([0-9.]+)/i);
+          if (mKwh) kwh = parseFloat(mKwh[1]);
+
+          // Import / export
+          const mW = l.match(/\bW\s*=\s*(-?\d+)/i);
+          if (mW) isExporting = parseInt(mW[1], 10) < 0;
+
+          // PV%
+          const mPv = l.match(/\bpv=([0-9.]+)%/i);
+          if (mPv) pv = parseFloat(mPv[1]);
+          else if (isExporting) pv = 100; // fallback
+
+          break;
         }
       }
 
