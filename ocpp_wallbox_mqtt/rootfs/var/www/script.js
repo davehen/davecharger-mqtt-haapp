@@ -344,7 +344,17 @@ if (limitKw != null && limitKw > 0) {
 
 
 		let isCharging = (liveState === "CHARGE");
+    // ✅ OVERRIDE: se vedo potenza reale CHG* negli ultimi N record, considero CHARGE
+    const tail = all.slice(-200);
 
+    const hasChgPower = tail.some(chgHasPower);
+    const hasPublishCharging = tail.some(l => /Publish charging =>\s*\(actual=1\)/.test(l));
+    const hasStatusCharging  = tail.some(l => /"status"\s*:\s*"Charging"/.test(l));
+
+    if (!isCharging && (hasChgPower || hasPublishCharging || hasStatusCharging)) {
+      isCharging = true;
+      liveState = "CHARGE";   // così l’header non resta STOP
+    }
 		if (!liveState) {
 		  const tail = all.slice(-120);
 		
