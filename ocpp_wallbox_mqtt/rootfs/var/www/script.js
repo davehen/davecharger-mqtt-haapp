@@ -388,9 +388,23 @@ if (limitKw != null && limitKw > 0) {
       let pv = null;
       let kwh = null;
 
-  
 
       if (isCharging && chgFresh) {
+
+        const start = Math.max(0, all.length - 300);
+        for (let i = all.length - 1; i >= start; i--) {
+          const l = all[i];
+          if (!/\bL[123]\s*\*/.test(l)) continue;
+
+          const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
+          if (mPv) {
+            pv = parseFloat(mPv[1].replace(",", "."));
+            break;
+          }
+        }
+
+        // se stai esportando e NON trovi pv (caso raro), allora 100
+        if ((pv == null || !isFinite(pv)) && isExporting) pv = 100;        
         for (let i = all.length - 1; i >= 0; i--) {
           const l = all[i];
           if (!chgHasPower(l)) continue;
@@ -406,11 +420,7 @@ if (limitKw != null && limitKw > 0) {
           const mW = l.match(/\bW\s*=\s*(-?\d+)/i);
           if (mW) isExporting = parseInt(mW[1], 10) < 0;
 
-          const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
-          if (mPv) pv = parseFloat(mPv[1].replace(",", "."));
-          else if (isExporting) pv = 100;
-
-          break;
+         break;
         }
       } else {
         // se non è “carica fresca”, non tenere valori vecchi
