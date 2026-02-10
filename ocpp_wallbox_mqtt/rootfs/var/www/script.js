@@ -4,6 +4,10 @@
     }
     
     
+let lastGoodKw = null;
+let lastGoodKwTs = null; // timestamp log dell’ultima CHG* valida
+let lastGoodExporting = false;
+
     const elLog = document.getElementById("log");
     const elLines = document.getElementById("lines");
     const elRefresh = document.getElementById("refresh");
@@ -355,7 +359,9 @@ if (limitKw != null && limitKw > 0) {
 
 
 
-      let isCharging = (liveState === "CHARGE");
+
+      let isCharging = false; // carica vera = solo da CHG* fresca (vedi sotto)
+
 
       // ===== CHG* TTL: carica “vera” solo se CHG* con P>50 è recente =====
       const CHG_TTL_MS = 8000; // 8s (con refresh 2s è perfetto)
@@ -371,63 +377,61 @@ if (limitKw != null && limitKw > 0) {
 
       const chgFresh = (lastChgTs != null) && ((nowLog - lastChgTs) <= CHG_TTL_MS);
 
+      // HOLD: se L* dice CHARGE, tengo su per un attimo anche se CHG* non è ancora arrivata
+      const CHG_HOLD_MS = 6000; // 6s basta per coprire il buco tra L* e CHG*
+      const chgHold = (liveState === "CHARGE") && (lastGoodKwTs != null) && ((nowLog - lastGoodKwTs) <= CHG_HOLD_MS);
 
-      // Se L dice STOP/SUSPEND ma CHG* è fresco => CHARGE vince
-      if (!isCharging && chgFresh) {
-        isCharging = true;
-        liveState = "CHARGE";
-      }
+      isCharging = chgFresh || chgHold;
+      if (isCharging) liveState = "CHARGE";
 
-      // Se L dice CHARGE ma CHG* non è fresco => NON è carica (evita “appeso”)
-      if (isCharging && !chgFresh) {
-        isCharging = false;
-        // liveState resta quello trovato dal loop L1* (o null)
-      }
+
 
       let kw = null;
       let pv = null;
       let kwh = null;
 
 
-      if (isCharging && chgFresh) {
 
-        const start = Math.max(0, all.length - 300);
-        for (let i = all.length - 1; i >= start; i--) {
-          const l = all[i];
-          if (!/\bL[123]\s*\*/.test(l)) continue;
+// PV: sempre da L* quando isCharging (anche in HOLD)
+if (isCharging) {
+  const start = Math.max(0, all.length - 300);
+  for (let i = all.length - 1; i >= start; i--) {
+    const l = all[i];
+    if (!/\bL[123]\s*\*/.test(l)) continue;
 
-          const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
-          if (mPv) {
-            pv = parseFloat(mPv[1].replace(",", "."));
-            break;
-          }
-        }
+    const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
+    if (mPv) { pv = parseFloat(mPv[1].replace(",", ".")); break; }
+  }
+}
 
-        // se stai esportando e NON trovi pv (caso raro), allora 100
-        if ((pv == null || !isFinite(pv)) && isExporting) pv = 100;        
-        for (let i = all.length - 1; i >= 0; i--) {
-          const l = all[i];
-          if (!chgHasPower(l)) continue;
+// kW/kWh/export: solo da CHG* fresca
+if (chgFresh) {
+  for (let i = all.length - 1; i >= 0; i--) {
+    const l = all[i];
+    if (!chgHasPower(l)) continue;
 
-          const mP = l.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
-          const p = mP ? parseFloat(mP[1]) : NaN;
-          if (!Number.isFinite(p)) continue;
-          kw = p / 1000.0;
+    const mP = l.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
+    const p = mP ? parseFloat(mP[1]) : NaN;
+    if (!Number.isFinite(p)) continue;
+    kw = p / 1000.0;
 
-          const mKwh = l.match(/\bkwh\s*=\s*([0-9.]+)/i);
-          if (mKwh) kwh = parseFloat(mKwh[1]);
+    const mKwh = l.match(/\bkwh\s*=\s*([0-9.]+)/i);
+    if (mKwh) kwh = parseFloat(mKwh[1]);
 
-          const mW = l.match(/\bW\s*=\s*(-?\d+)/i);
-          if (mW) isExporting = parseInt(mW[1], 10) < 0;
+    const mW = l.match(/\bW\s*=\s*(-?\d+)/i);
+    if (mW) {
+      isExporting = parseInt(mW[1], 10) < 0;
+      lastGoodExporting = isExporting;
+    }
 
-         break;
-        }
-      } else {
-        // se non è “carica fresca”, non tenere valori vecchi
-        isExporting = false;
-      }
+    break;
+  }
+} else {
+    isExporting = (isCharging && chgHold) ? lastGoodExporting : false;
+}
 
-
+if (kw != null) { lastGoodKw=kw; lastGoodKwTs=lastChgTs; }
+if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
 
       // Header coerente (mostra anche AVAIL/STOP)
       if (!isCharging) {
@@ -462,7 +466,8 @@ if (limitKw != null && limitKw > 0) {
       }
 
       // Sparkline: se non CHARGE , spingi 0
-      sparkData.push(isCharging && chgFresh && typeof kw === "number" && isFinite(kw) ? kw : 0);
+      sparkData.push(isCharging && typeof kw === "number" && isFinite(kw) ? kw : 0);
+
 
       sparkTime.push(nowLog);
 
