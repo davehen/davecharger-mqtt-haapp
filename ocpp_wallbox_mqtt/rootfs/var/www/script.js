@@ -74,13 +74,12 @@
     });
 	
 function parseLogTsMs(line) {
-  // "2026-02-10 11:15:20.507185 - ..."
   const m = line.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
   if (!m) return null;
   const [_, Y, Mo, D, h, mi, s] = m;
-  // locale time (va bene, ci serve solo differenza di secondi)
   return new Date(+Y, +Mo - 1, +D, +h, +mi, +s).getTime();
 }
+
 
 
 	function chgHasPower(line) {
