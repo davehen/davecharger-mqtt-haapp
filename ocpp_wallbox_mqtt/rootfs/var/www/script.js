@@ -467,7 +467,8 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
 
       // Sparkline: se non CHARGE , spingi 0
       //sparkData.push(isCharging && typeof kw === "number" && isFinite(kw) ? kw : 0);
-      sparkData.push(isCharging && typeof kw === "number" && isFinite(kw) ? kw : (lastGoodKw != null ? lastGoodKw : 0) );
+      const v = (liveState === "CHARGE" && typeof kw === "number" && isFinite(kw)) ? kw : 0;
+      sparkData.push(v);
 
 
       sparkTime.push(nowLog);
