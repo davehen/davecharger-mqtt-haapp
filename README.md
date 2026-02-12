@@ -67,7 +67,7 @@ If the add-on does not appear in the Store:
 For advanced automations, combine this add-on with:
 
 • Home Assistant Energy Dashboard  
-• Solar integrations  like Fusion Solar for Huawei Wallbox
+• Solar integrations  like Fusion Solar for Huawei Wallbox  
 • MQTT sensors  
 • Charging profiles (Dynamic, Fixed, Eco, Solar)
 
