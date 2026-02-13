@@ -15,6 +15,7 @@ The add-on also includes an automatic update mechanism, making it easy to stay i
 
 Ideal for users who want a simple, self-hosted OCPP + MQTT bridge inside Home Assistant for monitoring, control, and smart power limiting.
 
+
 ## You need to remove existing other OCPP Server/Integration. This addon already include an OCPP server.
 
 📘 Important: This add-on relies on Home Assistant automations to publish grid meter data (e.g., Huawei EMMA-A02) to the OCPP MQTT Server via MQTT.
