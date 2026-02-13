@@ -378,11 +378,12 @@ if (limitKw != null && limitKw > 0) {
       const chgFresh = (lastChgTs != null) && ((nowLog - lastChgTs) <= CHG_TTL_MS);
 
       // HOLD: se L* dice CHARGE, tengo su per un attimo anche se CHG* non è ancora arrivata
-      const CHG_HOLD_MS = 6000; // 6s basta per coprire il buco tra L* e CHG*
+      const CHG_HOLD_MS = 30000; // 30s basta per coprire il buco tra L* e CHG*
       const chgHold = (liveState === "CHARGE") && (lastGoodKwTs != null) && ((nowLog - lastGoodKwTs) <= CHG_HOLD_MS);
 
-      isCharging = chgFresh || chgHold;
-      if (isCharging) liveState = "CHARGE";
+     const liveCharge = (liveState === "CHARGE");
+     isCharging = liveCharge || chgFresh || chgHold;   // <-- CHARGE = charging
+     if (isCharging) liveState = "CHARGE";
 
 
 
@@ -467,7 +468,11 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
 
       // Sparkline: se non CHARGE , spingi 0
       //sparkData.push(isCharging && typeof kw === "number" && isFinite(kw) ? kw : 0);
-      const v = (liveState === "CHARGE" && typeof kw === "number" && isFinite(kw)) ? kw : 0;
+      //const v = (liveState === "CHARGE" && typeof kw === "number" && isFinite(kw)) ? kw : 0;
+
+      const v =
+          (isCharging && typeof kw === "number" && isFinite(kw)) ? kw :
+          (isCharging && lastGoodKw != null ? lastGoodKw : 0);
       sparkData.push(v);
 
 
