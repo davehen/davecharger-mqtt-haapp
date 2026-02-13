@@ -20,7 +20,7 @@ Ideal for users who want a simple, self-hosted OCPP + MQTT bridge inside Home As
 📘 Important: This add-on relies on Home Assistant automations to publish grid meter data (e.g., Huawei EMMA-A02) to the OCPP MQTT Server via MQTT.
 Please check the Documentation tab inside the add-on for required automations and examples.
 
-
+##
 <img width="1639" height="936" alt="image" src="https://github.com/user-attachments/assets/fe2dc1d3-f216-4233-bac4-2c09f7965493" />
 
 
