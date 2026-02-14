@@ -174,17 +174,16 @@ set_kv () {
   local key="$1"
   local value="$2"
 
-  # se value vuoto → non toccare nulla
   if [ -z "${value}" ]; then
     return 0
   fi
 
-  # cerca chiave attiva o commentata
-  if grep -qE "^[[:space:]]*#?[[:space:]]*${key}=" "${INI_FILE}"; then
+  # 1️ Se esiste una riga attiva → aggiorna quella
+  if grep -qE "^[[:space:]]*${key}=" "${INI_FILE}"; then
     awk -v k="$key" -v v="$value" '
       BEGIN { done=0 }
       {
-        if (!done && $0 ~ "^[[:space:]]*#?[[:space:]]*" k "=") {
+        if (!done && $0 ~ "^[[:space:]]*" k "=") {
           print k "=" v
           done=1
         } else {
@@ -192,10 +191,29 @@ set_kv () {
         }
       }
     ' "${INI_FILE}" > "${INI_FILE}.tmp" && mv "${INI_FILE}.tmp" "${INI_FILE}"
-  else
-    bashio::log.warning "Chiave ${key} non trovata in ${INI_FILE} — NON aggiunta."
+    return 0
   fi
+
+  # 2️ Altrimenti se esiste commentata → decommenta e aggiorna
+  if grep -qE "^[[:space:]]*#[[:space:]]*${key}=" "${INI_FILE}"; then
+    awk -v k="$key" -v v="$value" '
+      BEGIN { done=0 }
+      {
+        if (!done && $0 ~ "^[[:space:]]*#[[:space:]]*" k "=") {
+          print k "=" v
+          done=1
+        } else {
+          print
+        }
+      }
+    ' "${INI_FILE}" > "${INI_FILE}.tmp" && mv "${INI_FILE}.tmp" "${INI_FILE}"
+    return 0
+  fi
+
+  # 3️ Non trovata
+  bashio::log.warning "Chiave ${key} non trovata in ${INI_FILE} — NON aggiunta."
 }
+
 
 
 bashio::log.info "Aggiorno ${INI_FILE} dai parametri add-on..."
