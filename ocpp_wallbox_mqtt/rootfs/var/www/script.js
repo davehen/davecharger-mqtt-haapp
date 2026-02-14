@@ -86,16 +86,14 @@ function parseLogTsMs(line) {
 
 
 
-	function chgHasPower(line) {
-	  if (!/\bCHG\*/.test(line)) return false;
-	
-	  // accetta P=1234, P=1234.5, rifiuta P= , P=0, P=0.0
-	  const m = line.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
-	  if (!m) return false;
-	
-	  const p = parseFloat(m[1]);
-	  return Number.isFinite(p) && p > 50; // soglia anti-falsi positivi
-	}
+function chgHasPower(line) {
+  if (!/\bCHG\*/.test(line)) return false;
+  const m = line.match(/\bP\s*=\s*([0-9]+(?:[.,][0-9]+)?)/); // niente \b finale
+  if (!m) return false;
+  const p = parseFloat(m[1].replace(",", "."));
+  return Number.isFinite(p) && p > 50;
+}
+
 
     function escapeHtml(s) {
       return s.replace(/[&<>"']/g, m => ({
@@ -411,8 +409,9 @@ if (chgFresh) {
     const l = all[i];
     if (!chgHasPower(l)) continue;
 
-    const mP = l.match(/\bP\s*=\s*([0-9]+(?:\.[0-9]+)?)\b/);
-    const p = mP ? parseFloat(mP[1]) : NaN;
+    const mP = l.match(/\bP\s*=\s*([0-9]+(?:[.,][0-9]+)?)/);
+    const p  = mP ? parseFloat(mP[1].replace(",", ".")) : NaN;
+
     if (!Number.isFinite(p)) continue;
     kw = p / 1000.0;
 
