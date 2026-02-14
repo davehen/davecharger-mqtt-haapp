@@ -170,17 +170,17 @@ set_kv () {
   local key="$1"
   local value="$2"
 
-  # if value is empty -> do nothing (keep ini as is)
+  # se value vuoto → non toccare nulla
   if [ -z "${value}" ]; then
     return 0
   fi
 
-  # only first occurrence
-  if grep -qE "^[[:space:]]*${key}=" "${INI_FILE}"; then
+  # cerca chiave attiva o commentata
+  if grep -qE "^[[:space:]]*#?[[:space:]]*${key}=" "${INI_FILE}"; then
     awk -v k="$key" -v v="$value" '
       BEGIN { done=0 }
       {
-        if (!done && $0 ~ "^[[:space:]]*" k "=") {
+        if (!done && $0 ~ "^[[:space:]]*#?[[:space:]]*" k "=") {
           print k "=" v
           done=1
         } else {
@@ -189,10 +189,10 @@ set_kv () {
       }
     ' "${INI_FILE}" > "${INI_FILE}.tmp" && mv "${INI_FILE}.tmp" "${INI_FILE}"
   else
-    # only create if not present AND value not empty
-    echo "${key}=${value}" >> "${INI_FILE}"
+    bashio::log.warning "Chiave ${key} non trovata in ${INI_FILE} — NON aggiunta."
   fi
 }
+
 
 
 
