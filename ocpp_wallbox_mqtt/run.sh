@@ -178,7 +178,29 @@ set_kv () {
     return 0
   fi
 
-  # 1️ Se esiste una riga attiva → aggiorna quella
+  # Caso speciale: GRID_LIMIT e GRID_LIMIT_SAFE
+  if [ "${key}" = "GRID_LIMIT" ] || [ "${key}" = "GRID_LIMIT_SAFE" ]; then
+    if grep -qE "^[[:space:]]*${key}=" "${INI_FILE}"; then
+      awk -v k="$key" -v v="$value" '
+        BEGIN { done=0 }
+        {
+          if (!done && $0 ~ "^[[:space:]]*" k "=") {
+            print k "=" v
+            done=1
+          } else {
+            print
+          }
+        }
+      ' "${INI_FILE}" > "${INI_FILE}.tmp" && mv "${INI_FILE}.tmp" "${INI_FILE}"
+    else
+      bashio::log.warning "Chiave attiva ${key} non trovata in ${INI_FILE} — NON modificata."
+    fi
+    return 0
+  fi
+
+  # Comportamento standard per tutte le altre chiavi
+
+  # 1️ se esiste attiva → aggiorna
   if grep -qE "^[[:space:]]*${key}=" "${INI_FILE}"; then
     awk -v k="$key" -v v="$value" '
       BEGIN { done=0 }
@@ -194,7 +216,7 @@ set_kv () {
     return 0
   fi
 
-  # 2️ Altrimenti se esiste commentata → decommenta e aggiorna
+  # 2️ se esiste commentata → decommenta
   if grep -qE "^[[:space:]]*#[[:space:]]*${key}=" "${INI_FILE}"; then
     awk -v k="$key" -v v="$value" '
       BEGIN { done=0 }
@@ -210,7 +232,6 @@ set_kv () {
     return 0
   fi
 
-  # 3️ Non trovata
   bashio::log.warning "Chiave ${key} non trovata in ${INI_FILE} — NON aggiunta."
 }
 
