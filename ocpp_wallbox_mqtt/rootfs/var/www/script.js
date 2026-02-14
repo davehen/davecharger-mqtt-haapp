@@ -84,7 +84,13 @@ function parseLogTsMs(line) {
   return new Date(+Y, +Mo - 1, +D, +h, +mi, +s).getTime();
 }
 
-
+function getLastLogTimestamp(lines){
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const ts = parseLogTsMs(lines[i]);
+    if (ts != null) return ts;
+  }
+  return null;
+}
 
 function chgHasPower(line) {
   if (!/\bCHG\*/.test(line)) return false;
@@ -336,7 +342,9 @@ if (limitKw != null && limitKw > 0) {
       const txt = await r.text();
 
       const all = txt.split("\n").filter(x => x.length);
-      const nowLog = parseLogTsMs(all[all.length - 1]) ?? Date.now();
+      // const nowLog = parseLogTsMs(all[all.length - 1]) ?? Date.now();
+      const nowLog = getLastLogTimestamp(all) ?? Date.now();
+
 
       // Estrae ultimo GRID_LIMIT numerico per il grafico
       for (let i = all.length - 1; i >= 0; i--) {
@@ -350,8 +358,13 @@ if (limitKw != null && limitKw > 0) {
 		for (let i = all.length - 1; i >= 0; i--) {
 		  const l = all[i];
 		  if (!/\bL[123]\s*\*/.test(l)) continue;
-          const m = all[i].match(/\((?:\d+\s*,\s*)?(CHARGE|AVAIL|STOP|SUSPEND)(?:\/(CHARGE|SUSPEND))?(?:,\s*\d+s)?\)/i);
-		  if (m) { liveState = m[1].toUpperCase(); break; }
+      const m = all[i].match(/\((?:\d+\s*,\s*)?(CHARGE|AVAIL|STOP|SUSPEND|UPDATING)(?:\/(CHARGE|SUSPEND))?(?:,\s*\d+s)?\)/i);
+		  if (m) {
+        liveState = m[1].toUpperCase();
+        if (liveState === "UPDATING") liveState = "CHARGE"; // o "UPDATING" ma trattalo come charging
+        break;
+      }
+
 		}
 
 
