@@ -1,4 +1,4 @@
 # Changelog
-## [1.0.1-i] - 2026-01-28
-- FIX script autoupdate ocpp.ini
-- ADD wallbox_set_limit_mainstep and wallbox_set_limit_finestep
+## [1.0.2-b] - 2026-02-14
+- ADD l1/l2/l3 power on config
+- FOX commented variables

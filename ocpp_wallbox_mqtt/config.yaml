@@ -1,7 +1,7 @@
 name: "OCPP Wallbox MQTT Server"
 slug: "ocpp_wallbox_mqtt"
 description: "OCPP Wallbox MQTT Server"
-version: "1.0.2-a"
+version: "1.0.2-b"
 url: "https://github.com/skaccox/ocpp-wallbox-mqtt"
 documentation: "https://gitlab.com/lucabon/ocpp-mqtt-perl-server"
 
@@ -59,6 +59,10 @@ options:
   meter_mqtt_prefix: "home/meter/grid"
   meter_mqtt_power: "power"
 
+  meter_mqtt_l1_power: ""
+  meter_mqtt_l2_power: ""
+  meter_mqtt_l3_power: ""
+
   meter_mqtt_l1_voltage: "l1_voltage"
   meter_mqtt_l2_voltage: ""
   meter_mqtt_l3_voltage: ""
@@ -89,10 +93,14 @@ schema:
   minpower: int
   global_energy: bool
   use_stop_as_suspend: bool
-  stop_on_suspendev: str
+  stop_on_suspendev: bool
 
   meter_mqtt_prefix: str
   meter_mqtt_power: str
+
+  meter_mqtt_l1_power: str
+  meter_mqtt_l2_power: str
+  meter_mqtt_l3_power: str
 
   meter_mqtt_l1_voltage: str
   meter_mqtt_l2_voltage: str

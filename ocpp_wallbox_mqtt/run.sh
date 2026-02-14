@@ -20,6 +20,10 @@ STOP_ON_SUSPENDEV="$(bashio::config 'stop_on_suspendev')"
 METER_MQTT_PREFIX="$(bashio::config 'meter_mqtt_prefix')"
 METER_MQTT_POWER="$(bashio::config 'meter_mqtt_power')"
 
+METER_MQTT_L1_POWER="$(bashio::config 'meter_mqtt_l1_power')"
+METER_MQTT_L2_POWER="$(bashio::config 'meter_mqtt_l2_power')"
+METER_MQTT_L3_POWER="$(bashio::config 'meter_mqtt_l3_power')"
+
 METER_MQTT_L1_VOLTAGE="$(bashio::config 'meter_mqtt_l1_voltage')"
 METER_MQTT_L2_VOLTAGE="$(bashio::config 'meter_mqtt_l2_voltage')"
 METER_MQTT_L3_VOLTAGE="$(bashio::config 'meter_mqtt_l3_voltage')"
@@ -194,8 +198,6 @@ set_kv () {
 }
 
 
-
-
 bashio::log.info "Aggiorno ${INI_FILE} dai parametri add-on..."
 
 set_kv "VERBOSE" "${OCPP_VERBOSE}"
@@ -220,6 +222,10 @@ set_kv "STOP_ON_SUSPENDEV" "${STOP_ON_SUSPENDEV}"
 
 set_kv "METER_MQTT_PREFIX" "${METER_MQTT_PREFIX}"
 set_kv "METER_MQTT_POWER" "${METER_MQTT_POWER}"
+
+set_kv "METER_MQTT_L1_POWER" "${METER_MQTT_L1_POWER}"
+set_kv "METER_MQTT_L2_POWER" "${METER_MQTT_L2_POWER}"
+set_kv "METER_MQTT_L3_POWER" "${METER_MQTT_L3_POWER}"
 
 set_kv "METER_MQTT_L1_VOLTAGE" "${METER_MQTT_L1_VOLTAGE}"
 set_kv "METER_MQTT_L2_VOLTAGE" "${METER_MQTT_L2_VOLTAGE}"
