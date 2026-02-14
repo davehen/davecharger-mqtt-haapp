@@ -482,10 +482,29 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
       //sparkData.push(isCharging && typeof kw === "number" && isFinite(kw) ? kw : 0);
       //const v = (liveState === "CHARGE" && typeof kw === "number" && isFinite(kw)) ? kw : 0;
 
-      const v =
+     /* const v =
           (isCharging && typeof kw === "number" && isFinite(kw)) ? kw :
           (isCharging && lastGoodKw != null ? lastGoodKw : 0);
+      sparkData.push(v);*/
+
+      let chargingWindow =
+        (liveState === "CHARGE") ||
+        (lastGoodKwTs != null && (nowLog - lastGoodKwTs) <= 60000);
+
+      let v = null;
+
+      if (typeof kw === "number" && isFinite(kw)) {
+        v = kw;
+      }
+      else if (chargingWindow && lastGoodKw != null) {
+        v = lastGoodKw;
+      }
+      else {
+        v = 0;
+      }
+
       sparkData.push(v);
+
 
 
       sparkTime.push(nowLog);
