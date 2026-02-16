@@ -19,6 +19,39 @@ Ideal for users who want a simple, self-hosted OCPP + MQTT bridge inside Home As
 
 ---
 
+## ⚙️ Configuration Notes
+
+The add-on configuration panel exposes only the **main parameters**, which are automatically written to:
+
+```
+/config/ocpp-mqtt-perl-server/ocpp.ini
+```
+
+These options cover the most common settings such as MQTT connection, grid limits, power management and basic behavior flags.
+
+Advanced parameters, charging profiles, OCPP keys and other fine-tuning options can be edited directly inside the `ocpp.ini` file.
+
+You can modify the file using the **File Editor** add-on.
+
+⚡ **No restart is required** — changes to `ocpp.ini` are applied dynamically by the server.
+
+This allows advanced users to fully customize the OCPP engine while keeping the add-on configuration simple and clean.
+
+---
+
+## 🔌 Huawei Smart Charger
+
+For **Huawei Smart Charger / Huawei Wallbox**, the following configuration is recommended:
+
+```ini
+WALLBOX_SET_LIMIT_UNIT=W
+USE_STOP_AS_SUSPEND=1
+WALLBOX_SET_LIMIT_ZERO_ON_STOP=1
+CONFKEY=MeterValuesSampledData:Current.Import,Current.Offered,Energy.Active.Import.Register,Power.Active.Import,Voltage,Frequency,Temperature,Power.Factor,Power.Offered
+```
+
+---
+
 ## 🧠 Credits
 
 Original OCPP MQTT Perl Server by:

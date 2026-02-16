@@ -42,10 +42,15 @@ WALLBOX_MQTT_NAME="$(bashio::config 'wallbox_mqtt_name')"
 CODE_REPO="https://gitlab.com/lucabon/ocpp-mqtt-perl-server.git"
 CODE_REF="main"
 AUTO_UPDATE="$(bashio::config 'auto_update')"
+FORCE_UPDATE_ONCE=false
+if bashio::config.true 'single_update_now'; then
+  FORCE_UPDATE_ONCE=true
+fi
 
 ADD_WALLBOX_POWER_TO_METER=0
 GLOBAL_ENERGY=0
 USE_STOP_AS_SUSPEND=0
+
 
 if bashio::config.true 'add_wallbox_power_to_meter'; then
   ADD_WALLBOX_POWER_TO_METER=1
@@ -118,7 +123,7 @@ if [ ! -d "${APP_DIR}/.git" ]; then
     exit 1
   fi
 else
-  if bashio::config.true 'auto_update'; then
+  if bashio::config.true 'auto_update' || [ "${FORCE_UPDATE_ONCE}" = "true" ]; then
     # rete spesso non pronta subito: pochi retry, ma non blocchiamo lo start
     tries=0
     while [ $tries -lt 5 ]; do
@@ -135,6 +140,13 @@ else
     if ! have_net; then
       bashio::log.warning "Rete ancora non disponibile: salto auto_update e avvio la versione attuale."
     fi
+
+    # se era un update one-shot, resettalo nelle option
+    if [ "${FORCE_UPDATE_ONCE}" = "true" ]; then
+      bashio::log.info "Reset update_now flag"
+      bashio::addon.option single_update_now false
+    fi
+
   else
     bashio::log.info "Auto update disabled, skipping git update"
   fi

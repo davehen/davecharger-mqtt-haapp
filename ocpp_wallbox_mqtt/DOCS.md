@@ -116,7 +116,7 @@ Useful when the meter measures only household loads.
 Minimum wallbox charging power.
 
 Recommended:
-- `7` when using Watts
+- `6` when using Watts
 
 ---
 
@@ -128,8 +128,8 @@ This avoids idle energy waste (some EVs like Tesla may draw ~200W while suspende
 Example:
 
 0 → disabled
-30 → stop after 30 seconds
-60 → stop after 1 minute
+0:30 → stop after 30 seconds
+0:60 → stop after 1 minute
 
 
 ---
@@ -169,9 +169,24 @@ METER_MQTT_L3_CURRENT
 #### `auto_update`
 Automatically pull the latest OCPP MQTT Perl Server code from Git at every startup.
 
+When enabled, the add-on will check for updates and perform a git pull each time it starts.
+
 ⚠️ This updates the server engine, not the Home Assistant add-on itself.
 
 ---
+
+### 🔄 Single update now
+
+#### `single_update_now`
+Perform a one-time update of the OCPP MQTT Perl Server at the next add-on startup.
+
+When enabled, the add-on will execute a git pull once and then automatically reset this option to false.
+
+⚠️ This updates the server engine, not the Home Assistant add-on itself.
+
+---
+
+
 
 ## 📌 Profiles
 
