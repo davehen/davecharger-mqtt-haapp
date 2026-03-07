@@ -503,12 +503,13 @@ function parseChargeSessions(txt) {
         const end   = epoch * 1000;
         if (end > start) sessions.push({ start, end });
         openStart = null;
+        crossDayUsed = true; // evita che il paired StopTransaction crei una phantom cross-day
       } else if (!crossDayUsed && firstEpoch != null) {
         // sessione cross-day: Begin era nel file del giorno precedente
         const start = firstEpoch * 1000;
         const end   = epoch * 1000;
         if (end > start) sessions.push({ start, end });
-        crossDayUsed = true; // non creare un'altra sessione per StopTransaction
+        crossDayUsed = true;
       }
     }
   }
@@ -704,7 +705,10 @@ function drawHistoryChart(charge, meter, solar, sessions, sessionsMeta){
 
               const kwhStr = (s.kwh == null) ? "—" : s.kwh.toFixed(2) + " kWh";
               const fmt = (ms) => new Date(ms).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-              return `Sessione #${s.n} · ${fmt(s.start)} → ${fmt(s.end)} · ${s.durMin} min · ${kwhStr}`;
+              const h = Math.floor(s.durMin / 60);
+              const m = s.durMin % 60;
+              const durStr = h > 0 ? `${h}h ${String(m).padStart(2,"0")}min` : `${m}min`;
+              return `Sessione #${s.n} · ${fmt(s.start)} → ${fmt(s.end)} · ${durStr} · ${kwhStr}`;
             }
 
           }
