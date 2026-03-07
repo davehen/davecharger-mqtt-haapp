@@ -311,6 +311,7 @@ function showNoDataMessage(){
   document.getElementById("statPvMax").textContent = "—";
   document.getElementById("statSolar").textContent = "—";
   document.getElementById("statGridExport").textContent = "—";
+  document.getElementById("statGridImport").textContent = "—";
   document.getElementById("statSessions").textContent = "—";
 
 
@@ -438,13 +439,17 @@ document.getElementById("statSolar").textContent =
 
 // grid export giornaliero: integra solo i valori negativi (negativo = immissione)
 let gridExportKwh = 0;
+let gridImportKwh = 0;
 for (let i = 1; i < meter.gridKw.length; i++) {
   const dtH = (meter.gridKw[i].x - meter.gridKw[i-1].x) / 3600000;
   const avg = (meter.gridKw[i].y + meter.gridKw[i-1].y) / 2;
   if (avg < 0) gridExportKwh += Math.abs(avg) * dtH;
+  else gridImportKwh += avg * dtH;
 }
 document.getElementById("statGridExport").textContent =
   gridExportKwh > 0 ? gridExportKwh.toFixed(2)+" kWh" : "—";
+document.getElementById("statGridImport").textContent =
+  gridImportKwh > 0 ? gridImportKwh.toFixed(2)+" kWh" : "—";
 
 document.getElementById("statSessions").textContent =
   sessionsMeta.length;
