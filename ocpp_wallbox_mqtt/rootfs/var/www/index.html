@@ -2,19 +2,29 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>OCPP Wallbox Log</title>
+  <title>OCPP Wallbox</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <link rel="stylesheet" href="style.css">
+  <script src="chart.min.js"></script>
+  <script src="luxon.min.js"></script>
+  <script src="chartjs-adapter-luxon.min.js"></script>
+  <script src="hammer.min.js"></script>
+  <script src="chartjs-plugin-zoom.min.js"></script>
+
 </head>
 
 <body>
 <header>
   <div class="row">
+
     <img src="icon.png" class="logo" id="logo">
  <!-- solo prime 2 righe: affiancate al logo -->
     <div class="rightTop">
       <div class="topline">
-        <strong>OCPP Wallbox Log</strong>
+        <strong>OCPP Wallbox</strong>
         <span class="muted" id="status">—</span>
 
       
@@ -35,35 +45,76 @@
         </label>
       </div>
     </div>
-
+        <div id="historyControls" class="historyControls">
+              <button id="prevDay">◀</button>
+              <input type="date" id="datePicker">
+              <button id="nextDay">▶</button>
+              <button id="todayBtn" class="active">TODAY</button>
+              <button id="resetZoom">RESET</button>
+        </div>
     <!-- full width: filtro + metriche + azioni -->
     <div class="rightFull">
-      <label class="wide">Filtro:
+      <label class="wide">Filter:
         <input id="filter" type="text" placeholder="es: CHG, SetChargingProfile, grid safe..." />
-        <button id="btn" class="desktopOnly">Aggiorna</button>
-        <button id="btnBottom">Vai in fondo</button>
+        <button id="btn" class="desktopOnly">Update</button>
+        <button id="btnBottom">Go to bottom</button>
       </label>
 
       <div class="footerRow">
-        <span class="muted metrics">
-          kW: <strong id="kw">—</strong> · PV: <strong id="pv">—</strong> · Caricati: <strong id="kwh">—</strong>
-          <span id="solarBadge" class="badge" style="display:none;">FULL SOLAR</span>
-        </span>
+        <div class="metricsRow">
+          <span class="muted metrics">
+            kW: <strong id="kw">—</strong> · PV: <strong id="pv">—</strong> · Loaded: <strong id="kwh">—</strong>
+            <span id="solarBadge" class="badge" style="display:none;">FULL SOLAR</span>
+          </span>
+           
+          
+          <div class="modeSwitch">
+            <button id="btnLive" class="modeBtn active">LIVE</button>
+            <button id="btnHistory" class="modeBtn">GRAPH</button>
+          </div>
+        </div>
 
         
       </div>
     </div>
-    
+ 
+
+
   </div>
+
 </header>
 
 <div id="chartWrap">
-  <canvas id="powerChart"></canvas>
+     
+    <div id="historyHeader" class="historyHeader" style="display:none;">
+
+
+      <div class="historyStats" id="historyStats">
+        <span style="white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" viewBox="0 0 26 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M4 10 L6 4 Q6.5 2 8 2 H18 Q19.5 2 20 4 L22 10"/><rect x="2" y="10" width="22" height="5" rx="2"/><circle cx="7" cy="15" r="2.5" fill="currentColor" stroke="none"/><circle cx="19" cy="15" r="2.5" fill="currentColor" stroke="none"/><line x1="10" y1="6" x2="16" y2="6"/></svg>EV Max: <strong id="statEv">—</strong></span>
+        <span style="white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" viewBox="0 0 26 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M4 10 L6 4 Q6.5 2 8 2 H18 Q19.5 2 20 4 L22 10"/><rect x="2" y="10" width="22" height="5" rx="2"/><circle cx="7" cy="15" r="2.5" fill="currentColor" stroke="none"/><circle cx="19" cy="15" r="2.5" fill="currentColor" stroke="none"/><line x1="10" y1="6" x2="16" y2="6"/></svg>EV Total: <strong id="statCharged">—</strong></span>
+        <span style="white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="18" x2="19" y2="18"/><line x1="9" y1="3" x2="7" y2="21"/><line x1="15" y1="3" x2="13" y2="21"/></svg>Sessions: <strong id="statSessions">—</strong></span>
+        <span style="white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="1" y="1" width="22" height="13" rx="1"/><line x1="1" y1="5.3" x2="23" y2="5.3"/><line x1="1" y1="9.7" x2="23" y2="9.7"/><line x1="8" y1="1" x2="8" y2="14"/><line x1="16" y1="1" x2="16" y2="14"/><line x1="12" y1="14" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg>PV Max: <strong id="statPvMax">—</strong></span>
+        <span style="white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="1" y="1" width="22" height="13" rx="1"/><line x1="1" y1="5.3" x2="23" y2="5.3"/><line x1="1" y1="9.7" x2="23" y2="9.7"/><line x1="8" y1="1" x2="8" y2="14"/><line x1="16" y1="1" x2="16" y2="14"/><line x1="12" y1="14" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg>PV Total: <strong id="statSolar">—</strong></span>
+        <span style="white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 20 26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><line x1="10" y1="1" x2="10" y2="25"/><line x1="2" y1="7" x2="18" y2="7"/><line x1="4" y1="13" x2="16" y2="13"/><line x1="2" y1="7" x2="10" y2="1"/><line x1="18" y1="7" x2="10" y2="1"/><line x1="2" y1="7" x2="5" y2="25"/><line x1="18" y1="7" x2="15" y2="25"/><path d="M2 9 Q10 12 18 9" fill="none"/></svg>Grid Export: <strong id="statGridExport">—</strong></span>
+        <div id="historyError" style="display:none; text-align:center; width:100%;">
+          <strong>No data found.</strong><br>
+          Please verify that the <b>DATADIR</b> parameter is correctly set to <code><i>data</i></code>
+          in the configuration file.
+        </div>
+
+      </div>
+
+    </div>
+    <div id="historyWrap" style="display:none;">
+          <canvas id="historyChart"></canvas>
+    </div>
+    <canvas id="powerChart"></canvas>
 </div>
 
   
   <div id="log">Caricamento…</div>
 
 <script src="script.js" defer></script>
+<script src="history.js" defer></script>
 </body>
 </html>

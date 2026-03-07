@@ -24,6 +24,10 @@ header{
   z-index:30;
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5);
+}
+
 /* =========================
    HEADER LAYOUT (DESKTOP)
    ========================= */
@@ -165,15 +169,139 @@ button:hover{ filter:brightness(1.1); }
   align-items:center;
 }
 
+body.history-mode .metrics {
+  visibility: hidden;
+}
+
+.metrics {
+  min-width: 220px;  /* evita salto layout */
+}
+.metricsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;   /* <<< importante */
+}
+
+.modeSwitch {
+  display: flex;
+  gap: 6px;
+}
+
+.modeBtn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #2a2a2a;
+  background: #111;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.modeBtn.active {
+  background: #22c55e;
+  color: #000;
+  font-weight: 600;
+}
+
+#chartWrap.fullscreen {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  padding: 10px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+#historyControls{
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px; /* spazio prima dei bottoni */
+}
+
+
+#chartWrap.fullscreen canvas {
+  flex: 1 1 auto;              
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.historyHeader {
+  width: 100%;
+  margin-top: 8px;
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+#todayBtn.active{
+  outline: 2px solid #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
+}
+
+
+.historyStats {
+  display: inline-flex;   /* invece di flex */
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: linear-gradient(145deg,#0f172a,#0b1220);
+  border: 1px solid rgba(255,255,255,.08);
+  font-size: 13px;
+}
+
+.historyStats span {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  font-weight:500;
+}
+
+.historyStats strong {
+  font-size:16px;
+  margin-top:2px;
+}
+
+.modeBtn.active {
+  background: #22c55e;
+  color: #000;
+}
+
 
 /* ===== DESKTOP: rightTop + rightFull in UNA riga ===== */
 @media (min-width:601px){
   /* la riga header resta flex (già così) */
+  
   header .row{
-    display:flex;
-    align-items:center;
-    flex-wrap:nowrap;
+    position: relative;
   }
+
+  #historyControls{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+ .rightTop{
+    flex: 0 0 auto;
+  }
+
+ 
+  .rightFull{
+    flex: 0 0 auto;
+  }
+
 
   /* rightTop e rightFull stanno affiancati e non vanno a capo */
   .rightTop,
@@ -220,6 +348,19 @@ button:hover{ filter:brightness(1.1); }
 @media (max-width:600px){
   .desktopOnly{ display:none !important; }
 
+    /* il contenitore dei bottoni (LIVE/GRAPH) */
+  .modeSwitch{
+    position: absolute;
+    right: 10px;
+    top: 102px;
+    z-index: 50;
+  }
+
+  .modeBtn {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
   #filter {
     min-width: 100px;
     width: 120px;
@@ -228,8 +369,21 @@ button:hover{ filter:brightness(1.1); }
     display:grid;
     grid-template-columns:48px 1fr;
     column-gap:10px;
-    row-gap:6px;
+    row-gap:2px;
     align-items:start;
+    padding:6px 6px 14px 6px;
+  }
+
+
+  #historyControls{
+  
+    grid-column: 1 / -1;     /* prende tutta la larghezza */
+    display: none;
+    justify-content: center; /* centrato */
+    align-items: center;
+   
+   
+    margin-bottom:24px;
   }
 
   /* logo solo accanto al blocco top (prime 2 righe) */
@@ -273,6 +427,7 @@ button:hover{ filter:brightness(1.1); }
     display:grid;
     row-gap:6px;
     min-width:0;
+    margin-bottom:4px;
   }
 
   .rightFull .wide{
@@ -348,6 +503,22 @@ button:hover{ filter:brightness(1.1); }
 }
 @media (max-width:480px){
   #powerChart{ height:120px; }
+}
+
+@media (max-width:600px){
+  .historyStats {
+    gap: 10px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .historyStats strong {
+    font-size: 13px;
+    margin-top: 1px;
+  }
+  .historyStats span svg {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 /* contenitore log */

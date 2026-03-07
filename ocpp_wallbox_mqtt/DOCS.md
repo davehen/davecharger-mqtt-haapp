@@ -141,8 +141,14 @@ If you have a power meter publishing data via MQTT, you can link it here.
 #### `METER_MQTT_PREFIX`
 Base MQTT topic for meter values.
 
-Example: home/meter/grid/power
+Example: `home/grid`
 
+---
+
+#### `METER_MQTT_POWER`
+Sub-topic for total grid power (appended to `METER_MQTT_PREFIX`).
+
+Example: `power` → full topic: `home/grid/power`
 
 ---
 
@@ -161,6 +167,13 @@ METER_MQTT_L1_CURRENT
 METER_MQTT_L2_CURRENT
 METER_MQTT_L3_CURRENT
 
+
+---
+
+#### `PV_MQTT_PREFIX`
+Base MQTT topic for PV inverter power. Used by the charts to display solar production.
+
+Example: `home/pv` → the add-on reads `home/pv/power`
 
 ---
 
@@ -183,6 +196,19 @@ Perform a one-time update of the OCPP MQTT Perl Server at the next add-on startu
 When enabled, the add-on will execute a git pull once and then automatically reset this option to false.
 
 ⚠️ This updates the server engine, not the Home Assistant add-on itself.
+
+---
+
+### 📁 Data directory
+
+#### `data_dir`
+Subdirectory (relative to the add-on working directory) where the OCPP server stores its data files, such as energy history and charging session records.
+
+These files are also served by the built-in web interface to display charts and history.
+
+Default: `data`
+
+⚠️ Leave this set to `data` for the charts to work correctly.
 
 ---
 
@@ -213,32 +239,62 @@ Username/Password: none
 
 Home Assistant automation (example)
 
-To provide the grid meter values (e.g., Huawei EMMA-A02) to the server via MQTT, create an automation like this:
+To provide the grid meter values and PV production (e.g., Huawei EMMA-A02) to the server via MQTT, create an automation like this:
 ```
 alias: MQTT – EMMA meter completo
 description: ""
 triggers:
-  - entity_id:
-      - sensor.emma_potenza_di_alimentazione_in_ingresso
-      - sensor.emma_tensione_fase_a
-      - sensor.emma_corrente_fase_a
+  - entity_id: sensor.emma_potenza_di_alimentazione_in_ingresso
+    trigger: state
+  - entity_id: sensor.emma_tensione_fase_a
+    trigger: state
+  - entity_id: sensor.emma_corrente_fase_a
+    trigger: state
+  - entity_id: sensor.emma_potenza_attiva_inverter
     trigger: state
 actions:
-  - data:
-      topic: home/meter/grid/power
-      payload: "{{ states('sensor.emma_potenza_di_alimentazione_in_ingresso') }}"
-      retain: true
-    action: mqtt.publish
-  - data:
-      topic: home/meter/grid/l1_voltage
-      payload: "{{ states('sensor.emma_tensione_fase_a') }}"
-      retain: true
-    action: mqtt.publish
-  - data:
-      topic: home/meter/grid/l1_current
-      payload: "{{ states('sensor.emma_corrente_fase_a') }}"
-      retain: true
-    action: mqtt.publish
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ trigger.entity_id ==
+              'sensor.emma_potenza_di_alimentazione_in_ingresso' }}
+        sequence:
+          - action: mqtt.publish
+            data:
+              topic: home/grid/power
+              payload: >-
+                {{
+                states('sensor.emma_potenza_di_alimentazione_in_ingresso')|float(0)
+                }}
+              retain: true
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.entity_id == 'sensor.emma_tensione_fase_a' }}"
+        sequence:
+          - action: mqtt.publish
+            data:
+              topic: home/grid/l1_voltage
+              payload: "{{ states('sensor.emma_tensione_fase_a')|float(0) }}"
+              retain: true
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.entity_id == 'sensor.emma_corrente_fase_a' }}"
+        sequence:
+          - action: mqtt.publish
+            data:
+              topic: home/grid/l1_current
+              payload: "{{ states('sensor.emma_corrente_fase_a')|float(0) }}"
+              retain: true
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.entity_id == 'sensor.emma_potenza_attiva_inverter' }}"
+        sequence:
+          - action: mqtt.publish
+            data:
+              topic: home/pv/power
+              payload: "{{ states('sensor.emma_potenza_attiva_inverter')|float(0) }}"
+              retain: true
 mode: queued
 ```
 ---

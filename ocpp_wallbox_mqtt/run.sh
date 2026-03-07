@@ -19,6 +19,7 @@ STOP_ON_SUSPENDEV="$(bashio::config 'stop_on_suspendev')"
 
 METER_MQTT_PREFIX="$(bashio::config 'meter_mqtt_prefix')"
 METER_MQTT_POWER="$(bashio::config 'meter_mqtt_power')"
+PV_MQTT_PREFIX="$(bashio::config 'pv_mqtt_prefix')"
 
 METER_MQTT_L1_POWER="$(bashio::config 'meter_mqtt_l1_power')"
 METER_MQTT_L2_POWER="$(bashio::config 'meter_mqtt_l2_power')"
@@ -38,6 +39,9 @@ MQTT_USER="$(bashio::config 'mqtt_user')"
 MQTT_PASS="$(bashio::config 'mqtt_pass')"
 
 WALLBOX_MQTT_NAME="$(bashio::config 'wallbox_mqtt_name')"
+
+DATA_DIR="$(bashio::config 'data_dir')"
+DEFAULT_VIEW="$(bashio::config 'default_view')"
 
 CODE_REPO="https://gitlab.com/lucabon/ocpp-mqtt-perl-server.git"
 CODE_REF="main"
@@ -273,6 +277,7 @@ set_kv "STOP_ON_SUSPENDEV" "${STOP_ON_SUSPENDEV}"
 
 set_kv "METER_MQTT_PREFIX" "${METER_MQTT_PREFIX}"
 set_kv "METER_MQTT_POWER" "${METER_MQTT_POWER}"
+set_kv "PV_MQTT_PREFIX" "${PV_MQTT_PREFIX}"
 
 set_kv "METER_MQTT_L1_POWER" "${METER_MQTT_L1_POWER}"
 set_kv "METER_MQTT_L2_POWER" "${METER_MQTT_L2_POWER}"
@@ -286,15 +291,24 @@ set_kv "METER_MQTT_L1_CURRENT" "${METER_MQTT_L1_CURRENT}"
 set_kv "METER_MQTT_L2_CURRENT" "${METER_MQTT_L2_CURRENT}"
 set_kv "METER_MQTT_L3_CURRENT" "${METER_MQTT_L3_CURRENT}"
 
+set_kv "DATADIR" "${DATA_DIR}"
+
 bashio::log.info "Avvio web log viewer (Python) su porta 8099 (Ingress)"
+
+export OCPP_DATA_DIR="${APP_DIR}/${DATA_DIR:-data}"
+export OCPP_LOG="${APP_DIR}/ocpp.log"
+export OCPP_DEFAULT_VIEW="${DEFAULT_VIEW:-live}"
 
 python3 - <<'PY' &
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 
-LOG = "/config/ocpp-mqtt-perl-server/ocpp.log"
-INDEX = "/var/www/index.html"
+import json
+LOG          = os.environ["OCPP_LOG"]
+INDEX        = "/var/www/index.html"
+DATA_DIR     = os.environ["OCPP_DATA_DIR"]
+DEFAULT_VIEW = os.environ.get("OCPP_DEFAULT_VIEW", "live")
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -302,6 +316,14 @@ class H(BaseHTTPRequestHandler):
 
     def do_GET(self):
         u = urlparse(self.path)
+
+        if u.path == "/config":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(json.dumps({"default_view": DEFAULT_VIEW}).encode())
+            return
 
         if u.path in ("/", "/index.html"):
             self.send_response(200)
@@ -332,6 +354,25 @@ class H(BaseHTTPRequestHandler):
             with open(LOG, "rb") as f:
                 data = f.read().splitlines()[-n:]
             self.wfile.write(b"\n".join(data) + b"\n")
+            return
+
+        if u.path.startswith("/data/"):
+            rel = u.path[len("/data/"):].lstrip("/")
+            if ".." in rel or rel == "":
+                self.send_response(404)
+                self.end_headers()
+                return
+            path = os.path.join(DATA_DIR, rel)
+            if os.path.isfile(path):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                with open(path, "rb") as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_response(404)
+                self.end_headers()
             return
 
         # --- static files from /var/www (icon.png, css, js, ...)

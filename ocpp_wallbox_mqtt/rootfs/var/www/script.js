@@ -7,6 +7,8 @@
 let lastGoodKw = null;
 let lastGoodKwTs = null; // timestamp log dell’ultima CHG* valida
 let lastGoodExporting = false;
+let currentMode = "live";
+
 
     const elLog = document.getElementById("log");
     const elLines = document.getElementById("lines");
@@ -48,7 +50,7 @@ let lastGoodExporting = false;
     
 
 
-    let t = null;
+    
     let followBottom = true;
     let gridLimitW = null; // es. 4000
     let isExporting = false;   // <-- serve per grafico + badge
@@ -181,15 +183,16 @@ function chgHasPower(line) {
         bigCtx.fillStyle = "rgba(255,255,255,.45)";
         bigCtx.font = "11px system-ui";
 
+        const MIN_LABEL_GAP = 52; // px minimi tra etichette
+        let lastLabelX = -Infinity;
+
         for (let i = 0; i < sparkTime.length; i++){
           const t = sparkTime[i];
-          const isFirst = i === 0;
-          const isLast  = i === sparkTime.length - 1;
-          const onTick  = ((t - t0) % tick) < (ms + 60);
-
-          if (!(isFirst || isLast || onTick)) continue;
+          const onTick = ((t - t0) % tick) < (ms + 60);
+          if (!onTick) continue;
 
           const x = padL + ((t - t0) / range) * cw;
+          if (x - lastLabelX < MIN_LABEL_GAP) continue;
 
           bigCtx.strokeStyle = "rgba(255,255,255,.10)";
           bigCtx.beginPath();
@@ -206,6 +209,7 @@ function chgHasPower(line) {
             Math.min(padL + cw - tw, Math.max(padL, x - tw/2)),
             h - 6
           );
+          lastLabelX = x;
         }
       }
 
@@ -331,6 +335,8 @@ if (limitKw != null && limitKw > 0) {
 
 
     async function load() {
+
+    if (currentMode !== "live") return;
     const n = Math.max(50, Math.min(5000, parseInt(elLines.value || "400", 10)));
     const url = `log?n=${n}&_=${Date.now()}`;
     const q = (elFilter.value || "").trim().toLowerCase();
@@ -562,12 +568,19 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
   }
 
 
+window.liveTimer = null;
 
-    function setTimer() {
-      if (t) clearInterval(t);
-      const ms = parseInt(elRefresh.value, 10);
-      if (ms > 0) t = setInterval(load, ms);
-    }
+window.startLive = function startLive() {
+  if (window.liveTimer) clearInterval(window.liveTimer);
+  const ms = parseInt(elRefresh.value, 10);
+  if (ms > 0) window.liveTimer = setInterval(load, ms);
+};
+
+window.stopLive = function stopLive() {
+  if (window.liveTimer) clearInterval(window.liveTimer);
+  window.liveTimer = null;
+};
+
 
     if (btn)  btn.addEventListener("click", async () => {
       await load();
@@ -578,10 +591,10 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
     });
 
 
-    elRefresh.addEventListener("change", setTimer);
+    elRefresh.addEventListener("change",  window.startLive);
 
     load();
-    setTimer();
+    window.startLive();
     if (followBottom) {
 	  window.scrollTo(0, document.body.scrollHeight);
     }
