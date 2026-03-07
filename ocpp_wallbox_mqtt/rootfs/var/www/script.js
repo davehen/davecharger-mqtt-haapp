@@ -7,7 +7,7 @@
 let lastGoodKw = null;
 let lastGoodKwTs = null; // timestamp log dell’ultima CHG* valida
 let lastGoodExporting = false;
-let currentMode = "live";
+window.currentMode = (window.OCPP_DEFAULT_VIEW === "graph") ? "history" : "live";
 
 
     const elLog = document.getElementById("log");
@@ -336,7 +336,7 @@ if (limitKw != null && limitKw > 0) {
 
     async function load() {
 
-    if (currentMode !== "live") return;
+    if (window.currentMode !== "live") return;
     const n = Math.max(50, Math.min(5000, parseInt(elLines.value || "400", 10)));
     const url = `log?n=${n}&_=${Date.now()}`;
     const q = (elFilter.value || "").trim().toLowerCase();
