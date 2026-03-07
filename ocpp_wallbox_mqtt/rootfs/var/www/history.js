@@ -77,10 +77,7 @@ document.getElementById("todayBtn").onclick = () => {
   btnHistory.onclick = switchToGraph;
   btnLive.onclick = switchToLive;
 
-  fetch("/config")
-    .then(r => r.json())
-    .then(cfg => { if (cfg.default_view === "graph") switchToGraph(); })
-    .catch(() => {});
+  if (window.OCPP_DEFAULT_VIEW === "graph") switchToGraph();
 
   document.getElementById("prevDay").onclick = () => {
     currentDate.setDate(currentDate.getDate() - 1);

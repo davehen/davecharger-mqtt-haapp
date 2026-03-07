@@ -593,8 +593,10 @@ window.stopLive = function stopLive() {
 
     elRefresh.addEventListener("change",  window.startLive);
 
-    load();
-    window.startLive();
+    if (window.OCPP_DEFAULT_VIEW !== "graph") {
+      load();
+      window.startLive();
+    }
     if (followBottom) {
 	  window.scrollTo(0, document.body.scrollHeight);
     }

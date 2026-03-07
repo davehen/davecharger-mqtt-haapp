@@ -332,7 +332,10 @@ class H(BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 with open(INDEX, "rb") as f:
-                    self.wfile.write(f.read())
+                    html = f.read()
+                inject = f'<script>window.OCPP_DEFAULT_VIEW="{DEFAULT_VIEW}";</script>'.encode()
+                html = html.replace(b"</head>", inject + b"</head>", 1)
+                self.wfile.write(html)
             except FileNotFoundError:
                 self.wfile.write(b"index.html not found in /var/www\n")
             return
