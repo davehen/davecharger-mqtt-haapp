@@ -270,9 +270,6 @@ body.history-mode #status {
   box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
 }
 
-#chartType.active {
-  box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
-}
 
 #chartType {
   width: 108px;
