@@ -559,7 +559,7 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
         return `<div class="${c}">${html}</div>`;
       }).join("");
 
-      elStatus.textContent = `ok · ${new Date().toLocaleTimeString()}`;
+      elStatus.textContent = new Date().toLocaleTimeString();
 
       if (followBottom) window.scrollTo(0, document.body.scrollHeight);
     } catch (e) {

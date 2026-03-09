@@ -46,11 +46,22 @@
       </div>
     </div>
         <div id="historyControls" class="historyControls">
-              <button id="prevDay">◀</button>
-              <input type="date" id="datePicker">
-              <button id="nextDay">▶</button>
-              <button id="todayBtn" class="active">TODAY</button>
-              <button id="resetZoom">RESET</button>
+          <div class="viewBtns">
+            <button id="btnDay" class="viewBtn active">DAY</button>
+            <button id="btnWeek" class="viewBtn">WEEK</button>
+            <button id="btnMonth" class="viewBtn">MONTH</button>
+            <select id="chartType" style="display:none">
+              <option value="bars">BARS</option>
+              <option value="lines">LINES</option>
+              <option value="both">BARS + LINES</option>
+            </select>
+          </div>
+          <div class="navBtns">
+            <button id="prevDay">◀</button>
+            <input type="date" id="datePicker">
+            <button id="nextDay">▶</button>
+            <button id="todayBtn">TODAY</button>
+          </div>
         </div>
     <!-- full width: filtro + metriche + azioni -->
     <div class="rightFull">

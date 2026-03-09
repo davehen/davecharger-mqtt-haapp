@@ -1,5 +1,14 @@
 let historyChart = null;
 let currentDate = new Date();
+let viewMode = "day";
+let chartTypeMode = "bars";
+const chartTypeDefaults = { day: "bars", week: "bars", month: "lines" };
+
+function updateChartTypeActive() {
+  const sel = document.getElementById("chartType");
+  if (!sel) return;
+  sel.classList.toggle("active", sel.value !== (chartTypeDefaults[viewMode] || "bars"));
+}
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -16,15 +25,43 @@ document.addEventListener("DOMContentLoaded", () => {
   datePicker.max = today.toISOString().split("T")[0];
 
 
-document.getElementById("resetZoom").onclick = () => {
-  historyChart?.resetZoom();
-};
+function loadCurrentView() {
+  if (viewMode === "day")   loadHistoryForDate(currentDate);
+  else if (viewMode === "week")  loadHistoryForWeek(currentDate);
+  else if (viewMode === "month") loadHistoryForMonth(currentDate);
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById("btnDay").classList.toggle("active",   mode === "day");
+  document.getElementById("btnWeek").classList.toggle("active",  mode === "week");
+  document.getElementById("btnMonth").classList.toggle("active", mode === "month");
+  document.getElementById("datePicker").style.display = mode === "month" ? "none" : "";
+  chartTypeMode = chartTypeDefaults[mode] || "bars";
+  const sel = document.getElementById("chartType");
+  if (sel) {
+    sel.value = chartTypeMode;
+    sel.style.display = mode === "day" ? "none" : "";
+    updateChartTypeActive();
+  }
+  loadCurrentView();
+}
+
+document.getElementById("btnDay").onclick   = () => setViewMode("day");
+document.getElementById("btnWeek").onclick  = () => setViewMode("week");
+document.getElementById("btnMonth").onclick = () => setViewMode("month");
 
 document.getElementById("todayBtn").onclick = () => {
   currentDate = new Date();
   datePicker.valueAsDate = currentDate;
-  loadHistoryForDate(currentDate);
+  loadCurrentView();
   updateTodayHighlight();
+};
+
+document.getElementById("chartType").onchange = (e) => {
+  chartTypeMode = e.target.value;
+  updateChartTypeActive();
+  applyChartTypeMode();
 };
 
   function switchToGraph() {
@@ -80,48 +117,45 @@ document.getElementById("todayBtn").onclick = () => {
   if (window.OCPP_DEFAULT_VIEW === "graph") switchToGraph();
 
   document.getElementById("prevDay").onclick = () => {
-    currentDate.setDate(currentDate.getDate() - 1);
+    if (viewMode === "week")       currentDate.setDate(currentDate.getDate() - 7);
+    else if (viewMode === "month") currentDate.setMonth(currentDate.getMonth() - 1);
+    else                           currentDate.setDate(currentDate.getDate() - 1);
     datePicker.valueAsDate = currentDate;
-    loadHistoryForDate(currentDate);
+    loadCurrentView();
     updateTodayHighlight();
   };
 
+  document.getElementById("nextDay").onclick = () => {
+    const today = new Date();
+    const next = new Date(currentDate);
+    if (viewMode === "week")       next.setDate(next.getDate() + 7);
+    else if (viewMode === "month") next.setMonth(next.getMonth() + 1);
+    else                           next.setDate(next.getDate() + 1);
 
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const nextOnly  = new Date(next.getFullYear(), next.getMonth(), next.getDate());
+    if (nextOnly > todayOnly) return;
 
-document.getElementById("nextDay").onclick = () => {
-  const today = new Date();
-  const next = new Date(currentDate);
-  next.setDate(next.getDate() + 1);
-
-  // normalizza solo data (no ora)
-  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const nextOnly  = new Date(next.getFullYear(), next.getMonth(), next.getDate());
-
-  if (nextOnly > todayOnly) return;   // 🚫 blocca futuro
-
-  currentDate = next;
-  datePicker.valueAsDate = currentDate;
-  loadHistoryForDate(currentDate);
-  updateTodayHighlight();
-};
+    currentDate = next;
+    datePicker.valueAsDate = currentDate;
+    loadCurrentView();
+    updateTodayHighlight();
+  };
 
   datePicker.onchange = () => {
-  const selected = datePicker.valueAsDate;
-  const today = new Date();
-
-  const selectedOnly = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
-  const todayOnly    = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  if (selectedOnly > todayOnly) {
-    datePicker.valueAsDate = todayOnly;
-    currentDate = todayOnly;
-  } else {
-    currentDate = selectedOnly;
-  }
-
-  loadHistoryForDate(currentDate);
-  updateTodayHighlight();
-};
+    const selected = datePicker.valueAsDate;
+    const today = new Date();
+    const selectedOnly = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+    const todayOnly    = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (selectedOnly > todayOnly) {
+      datePicker.valueAsDate = todayOnly;
+      currentDate = todayOnly;
+    } else {
+      currentDate = selectedOnly;
+    }
+    loadCurrentView();
+    updateTodayHighlight();
+  };
 
 
   
@@ -151,6 +185,12 @@ window.zeroLinePlugin = {
     ctx.lineTo(chartArea.right, yZero);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // su mobile non c'è spazio per le etichette orarie
+    if (chart.width < 520) {
+      ctx.restore();
+      return;
+    }
 
     // etichette orarie sulla linea dello 0
     const ticks = x.ticks;
@@ -184,6 +224,228 @@ window.zeroLinePlugin = {
 };
 
 
+
+// ===== WEEKLY / MONTHLY VIEW =====
+
+async function computeDailyTotals(d) {
+  const { y, ymd } = ymdParts(d);
+  const bust = `?_=${Date.now()}`;
+  try {
+    const [chargeResp, meterResp, solarResp] = await Promise.all([
+      fetch(`data/${y}/${ymd}_charge.dat${bust}`, { cache: "no-store" }),
+      fetch(`data/${y}/${ymd}_meter.dat${bust}`,  { cache: "no-store" }),
+      fetch(`data/${y}/${ymd}_solar.dat${bust}`,  { cache: "no-store" })
+    ]);
+    if (!meterResp.ok) return { chargeKwh: 0, solarKwh: 0, importKwh: 0, exportKwh: 0, hasData: false };
+
+    const chargeTxt = chargeResp.ok ? await chargeResp.text() : "";
+    const meterTxt  = await meterResp.text();
+    const solarTxt  = solarResp?.ok ? await solarResp.text() : "";
+
+    const charge = parseChargeDat(chargeTxt);
+    const meter  = parseMeterDat(meterTxt);
+    const solar  = parseSolarDat(solarTxt);
+
+    const evEnergyRaw  = normalizeSeries(charge.evEnergy);
+    const sessions     = parseChargeSessions(chargeTxt).map(s => ({ start: s.start, end: s.end }));
+    const sessionsMeta = buildSessionsMeta(sessions, evEnergyRaw);
+    const chargeKwh    = sessionsMeta.reduce((acc, s) => acc + (s.kwh || 0), 0);
+
+    const solarArr = normalizeSeries(solar.solarKw);
+    let solarKwh = 0;
+    for (let i = 1; i < solarArr.length; i++) {
+      const dtH = (solarArr[i].x - solarArr[i-1].x) / 3600000;
+      solarKwh += (solarArr[i].y + solarArr[i-1].y) / 2 * dtH;
+    }
+
+    const gridArr = normalizeSeries(meter.gridKw);
+    let importKwh = 0, exportKwh = 0;
+    for (let i = 1; i < gridArr.length; i++) {
+      const dtH = (gridArr[i].x - gridArr[i-1].x) / 3600000;
+      const avg = (gridArr[i].y + gridArr[i-1].y) / 2;
+      if (avg > 0) importKwh += avg * dtH;
+      else exportKwh += Math.abs(avg) * dtH;
+    }
+
+    const evMaxKw = minMax(normalizeSeries(charge.evPower))?.max ?? 0;
+    const pvMaxKw = minMax(normalizeSeries(solar.solarKw))?.max ?? 0;
+
+    return { chargeKwh, solarKwh, importKwh, exportKwh, evMaxKw, pvMaxKw, sessionCount: sessionsMeta.length, hasData: true };
+  } catch {
+    return { chargeKwh: 0, solarKwh: 0, importKwh: 0, exportKwh: 0, evMaxKw: 0, pvMaxKw: 0, hasData: false };
+  }
+}
+
+async function loadHistoryForWeek(date) {
+  const monday = new Date(date);
+  const dow = monday.getDay();
+  monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+
+  const totals = await Promise.all(days.map(d => computeDailyTotals(d)));
+  const labels = days.map(d => d.toLocaleDateString([], { weekday: "short", day: "numeric" }));
+  const title  = `Week ${monday.toLocaleDateString([], { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}`;
+
+  drawBarChart(labels, totals, title);
+  updatePeriodStats(totals);
+}
+
+async function loadHistoryForMonth(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const days = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
+  const totals = await Promise.all(days.map(d => computeDailyTotals(d)));
+  const labels = days.map(d => d.getDate().toString());
+  const title  = date.toLocaleDateString([], { month: "long", year: "numeric" });
+
+  drawBarChart(labels, totals, title);
+  updatePeriodStats(totals);
+}
+
+function applyChartTypeMode() {
+  if (!historyChart) return;
+  const isBarChart = historyChart.data.datasets.some(ds => ds.label?.startsWith("_trend_"));
+  if (!isBarChart) return;
+  historyChart.data.datasets.forEach(ds => {
+    const isTrend = ds.label?.startsWith("_trend_");
+    if (chartTypeMode === "bars")       ds.hidden = isTrend;
+    else if (chartTypeMode === "lines") ds.hidden = !isTrend;
+    else                                ds.hidden = false;
+  });
+  historyChart.update();
+}
+
+function drawBarChart(labels, totals, title) {
+  const canvas = document.getElementById("historyChart");
+  const ctx = canvas.getContext("2d");
+  if (historyChart) historyChart.destroy();
+
+  const win = labels.length <= 7 ? 3 : 5;
+
+  historyChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "EV Charged (kWh)",
+          data: totals.map(t => t.hasData ? +t.chargeKwh.toFixed(2) : null),
+          backgroundColor: "rgba(34,197,94,0.75)",
+          borderColor: "#22c55e", borderWidth: 1
+        },
+        {
+          label: "Solar (kWh)",
+          data: totals.map(t => t.hasData ? +t.solarKwh.toFixed(2) : null),
+          backgroundColor: "rgba(56,189,248,0.75)",
+          borderColor: "#38bdf8", borderWidth: 1
+        },
+        {
+          label: "Grid Import (kWh)",
+          data: totals.map(t => t.hasData ? +t.importKwh.toFixed(2) : null),
+          backgroundColor: "rgba(244,63,94,0.75)",
+          borderColor: "#f43f5e", borderWidth: 1
+        },
+        {
+          label: "Grid Export (kWh)",
+          data: totals.map(t => t.hasData ? +t.exportKwh.toFixed(2) : null),
+          backgroundColor: "rgba(139,92,246,0.75)",
+          borderColor: "#8b5cf6", borderWidth: 1
+        },
+        { type:"line", label:"_trend_ev",     data: totals.map(t => t.hasData ? +t.chargeKwh.toFixed(2) : null), borderColor:"#22c55e", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
+        { type:"line", label:"_trend_solar",  data: totals.map(t => t.hasData ? +t.solarKwh.toFixed(2)  : null), borderColor:"#38bdf8", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
+        { type:"line", label:"_trend_import", data: totals.map(t => t.hasData ? +t.importKwh.toFixed(2) : null), borderColor:"#f43f5e", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
+        { type:"line", label:"_trend_export", data: totals.map(t => t.hasData ? +t.exportKwh.toFixed(2) : null), borderColor:"#8b5cf6", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: { bottom: 24 } },
+      plugins: {
+        title: { display: true, text: title, color: "#e5e7eb", font: { size: 14 } },
+        legend: {
+          labels: {
+            color: "#9ca3af",
+            boxWidth: 12,
+            filter: (item) => !item.text.startsWith("_trend_"),
+            generateLabels(chart) {
+              const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              labels.forEach(label => { label.hidden = false; });
+              return labels;
+            }
+          }
+        },
+        zoom: {
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x" },
+          pan: { enabled: true, mode: "x" }
+        },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              const lbl = context.dataset.label;
+              if (lbl?.startsWith("_trend_")) {
+                if (chartTypeMode !== "lines") return null;
+                const names = { _trend_ev: "EV Charged (kWh)", _trend_solar: "Solar (kWh)", _trend_import: "Grid Import (kWh)", _trend_export: "Grid Export (kWh)" };
+                return names[lbl] || lbl;
+              }
+              return lbl || "";
+            },
+            afterLabel(context) {
+              const lbl = context.dataset.label;
+              if (lbl?.startsWith("_trend_") && chartTypeMode !== "lines") return null;
+              const dataIndex = context.dataIndex;
+              const val = context.parsed.y;
+              const t = totals[dataIndex];
+              if (!t) return "";
+              const trendOrigIdx = { _trend_ev: 0, _trend_solar: 1, _trend_import: 2, _trend_export: 3 };
+              const dsIndex = lbl?.startsWith("_trend_") ? (trendOrigIdx[lbl] ?? -1) : context.datasetIndex;
+              const lines = [`Total: ${val !== null ? val.toFixed(2) + " kWh" : "—"}`];
+              if (dsIndex === 0 && t.evMaxKw) lines.push(`Max: ${t.evMaxKw.toFixed(2)} kW`);
+              if (dsIndex === 1 && t.pvMaxKw) lines.push(`Max: ${t.pvMaxKw.toFixed(2)} kW`);
+              return lines;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#9ca3af" }, grid: { color: "rgba(255,255,255,0.05)" } },
+        y: { beginAtZero: true, ticks: { color: "#9ca3af" }, grid: { color: "rgba(255,255,255,0.05)" } }
+      }
+    }
+  });
+
+  applyChartTypeMode();
+  setTimeout(() => historyChart.resize(), 50);
+}
+
+function updatePeriodStats(totals) {
+  document.getElementById("historyError").style.display = "none";
+  const sum = key => totals.reduce((acc, t) => acc + (t[key] || 0), 0);
+  const maxVal = key => {
+    const vals = totals.filter(t => t.hasData && t[key]).map(t => t[key]);
+    return vals.length ? Math.max(...vals) : null;
+  };
+
+  const evMax = maxVal("evMaxKw");
+  const pvMax = maxVal("pvMaxKw");
+  const sessions = sum("sessionCount");
+
+  document.getElementById("statEv").textContent       = evMax ? evMax.toFixed(2) + " kW" : "—";
+  document.getElementById("statCharged").textContent  = sum("chargeKwh").toFixed(2) + " kWh";
+  document.getElementById("statSessions").textContent = sessions || "—";
+  document.getElementById("statPvMax").textContent    = pvMax ? pvMax.toFixed(2) + " kW" : "—";
+  document.getElementById("statSolar").textContent    = sum("solarKwh").toFixed(2) + " kWh";
+  document.getElementById("statGridImport").textContent = sum("importKwh").toFixed(2) + " kWh";
+  document.getElementById("statGridExport").textContent = sum("exportKwh").toFixed(2) + " kWh";
+}
 
 function updateTodayHighlight() {
   const today = new Date();
@@ -273,6 +535,15 @@ function valueHold(series, t){
     v = series[i].y;
   }
   return v;
+}
+
+function movingAverage(data, win) {
+  return data.map((_, i) => {
+    const half = Math.floor(win / 2);
+    const slice = data.slice(Math.max(0, i - half), Math.min(data.length, i + half + 1))
+                      .filter(v => v !== null);
+    return slice.length ? slice.reduce((a, b) => a + b, 0) / slice.length : null;
+  });
 }
 
 function minMax(series){
@@ -718,18 +989,26 @@ function drawHistoryChart(charge, meter, solar, sessions, sessionsMeta){
       },
 
       scales: {
-        x: { type: "time", time: { unit: "hour" } },
+        x: {
+          type: "time",
+          time: { unit: "hour" },
+          ticks: { display: false }
+        },
         yPower: {
-            position: "left",
-            title: { display: true, text: "kW" },
-            grace: "15%",
-            beginAtZero: false,
-            afterDataLimits(scale) {
-              const abs = Math.max(Math.abs(scale.min), Math.abs(scale.max));
-              scale.min = -abs * 1.15;
-              scale.max =  abs * 1.15;
+          position: "left",
+          title: { display: true, text: "kW" },
+          beginAtZero: false,
+          afterDataLimits(scale) {
+            if (scale.max > 0) scale.max *= 1.05;
+            scale._dataMin = scale.min;
+          },
+          afterBuildTicks(scale) {
+            if ((scale._dataMin ?? 0) < 0) {
+              scale.ticks = scale.ticks.filter(t => t.value >= scale._dataMin);
+              scale.min = scale._dataMin;
             }
           }
+        }
       }
     }
   });
