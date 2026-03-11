@@ -360,8 +360,9 @@ function drawBarChart(labels, totals, title) {
         },
         { type:"line", label:"_trend_ev",     data: totals.map(t => t.hasData ? +t.chargeKwh.toFixed(2) : null), borderColor:"#22c55e", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
         { type:"line", label:"_trend_solar",  data: totals.map(t => t.hasData ? +t.solarKwh.toFixed(2)  : null), borderColor:"#38bdf8", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
-        { type:"line", label:"_trend_import", data: totals.map(t => t.hasData ? +t.importKwh.toFixed(2) : null), borderColor:"#f43f5e", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
-        { type:"line", label:"_trend_export", data: totals.map(t => t.hasData ? +t.exportKwh.toFixed(2) : null), borderColor:"#8b5cf6", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 }
+        { type:"line", label:"_trend_export", data: totals.map(t => t.hasData ? +t.exportKwh.toFixed(2) : null), borderColor:"#8b5cf6", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 },
+        { type:"line", label:"_trend_import", data: totals.map(t => t.hasData ? +t.importKwh.toFixed(2) : null), borderColor:"#f43f5e", borderWidth:2, pointRadius:3, pointHoverRadius:7, fill:false, tension:0.2, order:0 }
+        
       ]
     },
     options: {
