@@ -836,8 +836,8 @@ function parseChargeDat(text){
       evPower.push({ x: ts * 1000, y: 0 });
     }
 
-    // accetta solo "NNN/NNN" (due numeri puri) - rifiuta "120/120-1" (limite sessione)
-    if (energySession && /^\d+\/\d+$/.test(energySession)){
+    // accetta "NNN/NNN" o "NNN" (numeri puri) - rifiuta "120/120-1" (limite sessione)
+    if (energySession && /^[\d\/]+$/.test(energySession)){
       const totalEnergy = parseFloat(energySession.split("/")[0]);
 
       if (Number.isFinite(totalEnergy)){
