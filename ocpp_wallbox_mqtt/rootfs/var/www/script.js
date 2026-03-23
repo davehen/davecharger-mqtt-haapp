@@ -417,7 +417,7 @@ if (isCharging) {
     const l = all[i];
     if (!/\bL[123]\s*\*/.test(l)) continue;
 
-    const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
+    const mPv = l.match(/\b(?:pv|solar)\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
     if (mPv) { pv = parseFloat(mPv[1].replace(",", ".")); break; }
   }
 }
