@@ -183,7 +183,7 @@ body.history-mode #status {
     row-gap: 0;
   }
   body.history-mode {
-    --header-h: 130px;
+    /*--header-h: 140px;*/
   }
 }
 
@@ -402,6 +402,10 @@ body.history-mode #status {
 @media (max-width:600px){
   .desktopOnly{ display:none !important; }
 
+  #chartWrap.fullscreen {
+    top: calc(var(--header-h) - 4px);
+  }
+
     /* il contenitore dei bottoni (LIVE/GRAPH) */
   .modeSwitch{
     position: absolute;
@@ -418,8 +422,8 @@ body.history-mode #status {
   /* orario in basso a destra su mobile live */
   #status {
     position: absolute;
-    bottom: 16px;
-    right: 0;
+    top: 18px;
+    left: 194px;
     font-size: 11px;
   }
 
@@ -443,7 +447,7 @@ body.history-mode #status {
     flex-direction: column;
     gap: 4px;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
   }
 
   /* logo solo accanto al blocco top (prime 2 righe) */

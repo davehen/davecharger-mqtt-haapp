@@ -107,6 +107,7 @@ document.getElementById("chartType").onchange = (e) => {
     chartWrap.classList.remove("fullscreen");
     logDiv.style.display = "block";
 
+    if (window.resizeBigChart) window.resizeBigChart();
     if (historyChart) historyChart.destroy();
     load();
   }

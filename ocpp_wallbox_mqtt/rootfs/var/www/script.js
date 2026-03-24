@@ -44,6 +44,7 @@ window.currentMode = (window.OCPP_DEFAULT_VIEW === "graph") ? "history" : "live"
     }
 
     window.addEventListener("resize", () => { setHeaderHeightVar(); resizeBigChart(); });
+    window.resizeBigChart = resizeBigChart;
 
     setTimeout(() => { setHeaderHeightVar(); resizeBigChart(); }, 50);
     
@@ -399,7 +400,8 @@ if (limitKw != null && limitKw > 0) {
       const chgHold = (liveState === "CHARGE") && (lastGoodKwTs != null) && ((nowLog - lastGoodKwTs) <= CHG_HOLD_MS);
 
      const liveCharge = (liveState === "CHARGE");
-     isCharging = liveCharge || chgFresh || chgHold;   // <-- CHARGE = charging
+     const kwHold = (lastGoodKwTs != null) && ((nowLog - lastGoodKwTs) <= 60000); // stessa logica di chargingWindow
+     isCharging = liveCharge || chgFresh || chgHold || kwHold;   // <-- CHARGE = charging
      if (isCharging) liveState = "CHARGE";
 
 
@@ -417,7 +419,7 @@ if (isCharging) {
     const l = all[i];
     if (!/\bL[123]\s*\*/.test(l)) continue;
 
-    const mPv = l.match(/\b(?:pv|solar)\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
+    const mPv = l.match(/\bpv\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?/i);
     if (mPv) { pv = parseFloat(mPv[1].replace(",", ".")); break; }
   }
 }
@@ -505,15 +507,17 @@ if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
       else if (chargingWindow && lastGoodKw != null) {
         v = lastGoodKw;
       }
+      else if (chargingWindow) {
+        v = null; // in attesa di CHG*, non pushare 0
+      }
       else {
         v = 0;
       }
 
-      sparkData.push(v);
-
-
-
-      sparkTime.push(nowLog);
+      if (v != null) {
+        sparkData.push(v);
+        sparkTime.push(nowLog);
+      }
 
       while (sparkData.length > SPARK_MAX) { sparkData.shift(); sparkTime.shift(); }
       drawBigChart();
