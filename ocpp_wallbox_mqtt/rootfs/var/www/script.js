@@ -5,6 +5,7 @@
     
     
 let lastGoodKw = null;
+let lastGoodKwh = null;
 let lastGoodKwTs = null; // timestamp log dell’ultima CHG* valida
 let lastGoodExporting = false;
 window.currentMode = (window.OCPP_DEFAULT_VIEW === "graph") ? "history" : "live";
@@ -452,7 +453,9 @@ if (chgFresh) {
 }
 
 if (kw != null) { lastGoodKw=kw; lastGoodKwTs=lastChgTs; }
+if (kwh != null) { lastGoodKwh=kwh; }
 if (kw == null && isCharging && chgHold && lastGoodKw != null) kw = lastGoodKw;
+if (kwh == null && isCharging && lastGoodKwh != null) kwh = lastGoodKwh;
 
       // Header coerente (mostra anche AVAIL/STOP)
       if (!isCharging) {
