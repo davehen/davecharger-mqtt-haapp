@@ -402,8 +402,8 @@ body.history-mode #status {
 @media (max-width:600px){
   .desktopOnly{ display:none !important; }
 
-  #chartWrap.fullscreen {
-    top: calc(var(--header-h) - 4px);
+  #chartWrap {
+    top: calc(var(--header-h) - 4px) !important;
   }
 
     /* il contenitore dei bottoni (LIVE/GRAPH) */
