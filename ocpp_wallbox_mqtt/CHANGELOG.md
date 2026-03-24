@@ -1,3 +1,3 @@
 # Changelog
-## [1.0.4.7] - 2026-03-24
-- FIX mobile layout
+## [1.0.4.8] - 2026-03-24
+- ADD PV Charged %
