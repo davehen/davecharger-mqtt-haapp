@@ -481,7 +481,7 @@ if (kwh == null && isCharging && lastGoodKwh != null) kwh = lastGoodKwh;
       // Badge FULL SOLAR + warn se sopra limite
       const elBadge = document.getElementById("solarBadge");
       if (elBadge) {
-        const fullSolar = isCharging && (pv != null) && pv >= 99.9;
+        const fullSolar = isCharging && (pv != null) && pv >= 98;
         elBadge.style.display = fullSolar ? "inline-flex" : "none";
 
         const limitKw = (typeof gridLimitW === "number" && isFinite(gridLimitW)) ? (gridLimitW / 1000) : null;
