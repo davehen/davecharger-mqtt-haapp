@@ -268,12 +268,31 @@ async function computeDailyTotals(d) {
       else exportKwh += Math.abs(avg) * dtH;
     }
 
-    const evMaxKw = minMax(normalizeSeries(charge.evPower))?.max ?? 0;
+    // PV Charged: quanta energia EV viene dal solare
+    const evArr = normalizeSeries(charge.evPower);
+    const r = commonRange([evArr, gridArr]);
+    let pvChargedKwh = 0;
+    if (r && evArr.length && gridArr.length) {
+      const STEP = 30000;
+      const evR = resampleHold(evArr, r.t0, r.t1, STEP);
+      const grR = resampleHold(gridArr, r.t0, r.t1, STEP);
+      for (let i = 1; i < evR.length; i++) {
+        const ev0 = evR[i-1].y || 0, ev1 = evR[i].y || 0;
+        const gr0 = grR[i-1] ? (grR[i-1].y || 0) : 0;
+        const gr1 = grR[i] ? (grR[i].y || 0) : 0;
+        const pv0 = Math.max(0, Math.min(ev0, ev0 - gr0));
+        const pv1 = Math.max(0, Math.min(ev1, ev1 - gr1));
+        const dtH = (evR[i].x - evR[i-1].x) / 3600000;
+        pvChargedKwh += (pv0 + pv1) / 2 * dtH;
+      }
+    }
+
+    const evMaxKw = minMax(evArr)?.max ?? 0;
     const pvMaxKw = minMax(normalizeSeries(solar.solarKw))?.max ?? 0;
 
-    return { chargeKwh, solarKwh, importKwh, exportKwh, evMaxKw, pvMaxKw, sessionCount: sessionsMeta.length, hasData: true };
+    return { chargeKwh, solarKwh, importKwh, exportKwh, pvChargedKwh, evMaxKw, pvMaxKw, sessionCount: sessionsMeta.length, hasData: true };
   } catch {
-    return { chargeKwh: 0, solarKwh: 0, importKwh: 0, exportKwh: 0, evMaxKw: 0, pvMaxKw: 0, hasData: false };
+    return { chargeKwh: 0, solarKwh: 0, importKwh: 0, exportKwh: 0, pvChargedKwh: 0, evMaxKw: 0, pvMaxKw: 0, hasData: false };
   }
 }
 
@@ -441,7 +460,12 @@ function updatePeriodStats(totals) {
   const sessions = sum("sessionCount");
 
   document.getElementById("statEv").textContent       = evMax ? evMax.toFixed(2) + " kW" : "—";
-  document.getElementById("statCharged").textContent  = sum("chargeKwh").toFixed(2) + " kWh";
+  const totCharge = sum("chargeKwh");
+  document.getElementById("statCharged").textContent  = totCharge.toFixed(2) + " kWh";
+  const totPvCharged = sum("pvChargedKwh");
+  document.getElementById("statPvCharged").textContent = totPvCharged > 0 ? totPvCharged.toFixed(2) + " kWh" : "—";
+  const pctPv = (totCharge > 0 && totPvCharged > 0) ? Math.min(100, totPvCharged / totCharge * 100) : 0;
+  document.getElementById("statPvChargedPct").textContent = pctPv > 0 ? pctPv.toFixed(0) + "%" : "—";
   document.getElementById("statSessions").textContent = sessions || "—";
   document.getElementById("statPvMax").textContent    = pvMax ? pvMax.toFixed(2) + " kW" : "—";
   document.getElementById("statSolar").textContent    = sum("solarKwh").toFixed(2) + " kWh";
@@ -581,6 +605,8 @@ function showNoDataMessage(){
 
   document.getElementById("statEv").textContent = "—";
   document.getElementById("statCharged").textContent = "—";
+  document.getElementById("statPvCharged").textContent = "—";
+  document.getElementById("statPvChargedPct").textContent = "—";
   document.getElementById("statPvMax").textContent = "—";
   document.getElementById("statSolar").textContent = "—";
   document.getElementById("statGridExport").textContent = "—";
@@ -697,6 +723,28 @@ document.getElementById("statEv").textContent =
 const totalKwh = sessionsMeta.reduce((acc,s)=>acc+(s.kwh||0),0);
 document.getElementById("statCharged").textContent =
   totalKwh > 0 ? totalKwh.toFixed(2)+" kWh" : "—";
+
+// PV Charged: quanta energia caricata nell'EV è venuta dal solare
+// pvForEv = max(0, min(evPower, evPower - gridKw))
+let pvChargedKwh = 0;
+const evP = charge.evPower;
+const grP = meter.gridKw;
+if (evP.length && grP.length) {
+  for (let i = 1; i < evP.length; i++) {
+    const ev0 = evP[i-1].y || 0, ev1 = evP[i].y || 0;
+    const gr0 = grP[i-1] ? (grP[i-1].y || 0) : 0;
+    const gr1 = grP[i] ? (grP[i].y || 0) : 0;
+    const pv0 = Math.max(0, Math.min(ev0, ev0 - gr0));
+    const pv1 = Math.max(0, Math.min(ev1, ev1 - gr1));
+    const dtH = (evP[i].x - evP[i-1].x) / 3600000;
+    pvChargedKwh += (pv0 + pv1) / 2 * dtH;
+  }
+}
+document.getElementById("statPvCharged").textContent =
+  pvChargedKwh > 0 ? pvChargedKwh.toFixed(2)+" kWh" : "—";
+const pvPct = (totalKwh > 0 && pvChargedKwh > 0) ? Math.min(100, pvChargedKwh / totalKwh * 100) : 0;
+document.getElementById("statPvChargedPct").textContent =
+  pvPct > 0 ? pvPct.toFixed(0)+"%" : "—";
 
 document.getElementById("statPvMax").textContent =
   pvMM ? pvMM.max.toFixed(2)+" kW" : "—";
