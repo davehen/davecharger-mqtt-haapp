@@ -1,7 +1,7 @@
 name: "OCPP Wallbox MQTT Server"
 slug: "ocpp_wallbox_mqtt"
 description: "OCPP Wallbox MQTT Server"
-version: "1.0.4.8"
+version: "1.0.4.9"
 url: "https://github.com/skaccox/ocpp-wallbox-mqtt"
 documentation: "https://gitlab.com/lucabon/ocpp-mqtt-perl-server"
 
@@ -11,6 +11,12 @@ ingress_port: 8099
 panel: true
 panel_title: "OCPP Wallbox"
 panel_icon: "mdi:ev-station"
+panel_iframe:
+  ocpp_wallbox:
+    title: "OCPP Wallbox"
+    icon: mdi:ev-station
+    url: "http://homeassistant.local:8099"
+    require_admin: false
 
 arch:
   - aarch64
