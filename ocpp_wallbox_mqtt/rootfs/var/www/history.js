@@ -500,9 +500,21 @@ function energyAt(evEnergy, tsMs) {
 // === Precalcola meta sessioni: #, durata, kWh ===
 function buildSessionsMeta(sessions, evEnergy) {
   return sessions.map((s, idx) => {
-    const e0 = energyAt(evEnergy, s.start);
-    const e1 = energyAt(evEnergy, s.end);
-        console.log("session", idx, "start:", s.start, "end:", s.end, "e0:", e0, "e1:", e1); // ← aggiungi
+    let e0 = energyAt(evEnergy, s.start);
+    let e1 = energyAt(evEnergy, s.end);
+
+    // fallback: se e0 manca (Begin prima del primo MeterValue), prendo il primo valore nella sessione
+    if (e0 == null) {
+      for (let i = 0; i < evEnergy.length; i++) {
+        if (evEnergy[i].x >= s.start && evEnergy[i].x <= s.end) { e0 = evEnergy[i].y; break; }
+      }
+    }
+    // fallback: se e1 manca (sessione in corso), prendo l'ultimo valore nella sessione
+    if (e1 == null) {
+      for (let i = evEnergy.length - 1; i >= 0; i--) {
+        if (evEnergy[i].x >= s.start && evEnergy[i].x <= s.end) { e1 = evEnergy[i].y; break; }
+      }
+    }
 
     let kwh = null;
     if (e0 != null && e1 != null) {
@@ -817,8 +829,11 @@ function parseChargeSessions(txt) {
     const hasEnd   = line.includes("Transaction.End") || line.includes("StopTransaction");
 
     if (hasBegin) {
-      openStart = epoch;
-      crossDayUsed = false;
+      // se la sessione è già aperta, ignora i re-trigger (es. dopo riavvio HA)
+      if (openStart == null) {
+        openStart = epoch;
+        crossDayUsed = false;
+      }
       continue;
     }
 
