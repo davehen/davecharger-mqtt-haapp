@@ -1,3 +1,4 @@
 # Changelog
-## [1.0.4.10] - 2026-03-25
-- ADD panel iframe for not admin users
+## [1.0.4.11] - 2026-03-25
+- ADD sidebar panel for non-admin users
+- FIX PV Charged calculation

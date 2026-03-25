@@ -287,6 +287,8 @@ async function computeDailyTotals(d) {
       }
     }
 
+    if (chargeKwh > 0 && pvChargedKwh > chargeKwh) pvChargedKwh = chargeKwh;
+
     const evMaxKw = minMax(evArr)?.max ?? 0;
     const pvMaxKw = minMax(normalizeSeries(solar.solarKw))?.max ?? 0;
 
@@ -740,9 +742,10 @@ if (evP.length && grP.length) {
     pvChargedKwh += (pv0 + pv1) / 2 * dtH;
   }
 }
+if (totalKwh > 0 && pvChargedKwh > totalKwh) pvChargedKwh = totalKwh;
 document.getElementById("statPvCharged").textContent =
   pvChargedKwh > 0 ? pvChargedKwh.toFixed(2)+" kWh" : "—";
-const pvPct = (totalKwh > 0 && pvChargedKwh > 0) ? Math.min(100, pvChargedKwh / totalKwh * 100) : 0;
+const pvPct = (totalKwh > 0 && pvChargedKwh > 0) ? (pvChargedKwh / totalKwh * 100) : 0;
 document.getElementById("statPvChargedPct").textContent =
   pvPct > 0 ? pvPct.toFixed(0)+"%" : "—";
 
