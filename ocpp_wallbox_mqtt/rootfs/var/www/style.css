@@ -301,7 +301,7 @@ body.history-mode #status {
 .historyStats {
   display: inline-flex;   /* invece di flex */
   justify-content: center;
-  gap: 24px;
+  gap: 18px;
   flex-wrap: wrap;
   padding: 10px 16px;
   margin-bottom: 12px;
