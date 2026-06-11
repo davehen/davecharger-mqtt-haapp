@@ -43,7 +43,7 @@ WALLBOX_MQTT_NAME="$(bashio::config 'wallbox_mqtt_name')"
 DATA_DIR="$(bashio::config 'data_dir')"
 DEFAULT_VIEW="$(bashio::config 'default_view')"
 
-CODE_REPO="https://gitlab.com/lucabon/ocpp-mqtt-perl-server.git"
+CODE_REPO="https://github.com/davehen/davecharger-mqtt-server.git"
 CODE_REF="main"
 AUTO_UPDATE="$(bashio::config 'auto_update')"
 FORCE_UPDATE_ONCE=false
