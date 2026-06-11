@@ -1,3 +1,3 @@
-name: "OCPP Wallbox MQTT Server HA Addon"
-url: "https://github.com/skaccox/ocpp-wallbox-mqtt"
-maintainer: "Cristiano Puppin <skacco@gmail.com>"
+name: "Davecharger MQTT Server HA App"
+url: "https://github.com/davehen/davecharger-mqtt-haapp"
+maintainer: "Davide Gallina <davide.gallina@gmail.com>"
