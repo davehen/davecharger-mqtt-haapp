@@ -1,7 +1,7 @@
 name: "Davecharger MQTT Server"
 slug: "davecharger_mqtt_server"
 description: "Davecharger MQTT Server"
-version: "1.0.4.14"
+version: "1.0.0"
 url: "https://github.com/davehen/davecharger-mqtt-haapp"
 documentation: "https://github.com/davehen/davecharger-mqtt-server"
 
